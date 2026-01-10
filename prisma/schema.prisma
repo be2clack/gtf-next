@@ -1,0 +1,1548 @@
+// GTF - Global Taekwondo Federation
+// Prisma Schema - Migrated from Laravel
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ==================== ENUMS ====================
+
+enum UserType {
+  ADMIN
+  JUDGE
+  ARBITER
+  SPORTSMAN
+  REPRESENTATIVE
+  TRAINER
+}
+
+enum FederationStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum CompetitionStatus {
+  DRAFT
+  PUBLISHED
+  REGISTRATION_OPEN
+  REGISTRATION_CLOSED
+  DRAW_COMPLETED
+  ONGOING
+  COMPLETED
+  CANCELLED
+}
+
+enum CompetitionType {
+  PERSONAL
+  TEAM
+  MIXED
+}
+
+enum CompetitionLevel {
+  INTERNATIONAL
+  NATIONAL
+  REGIONAL
+  CLUB
+}
+
+enum RatingType {
+  OFFICIAL
+  FESTIVAL
+}
+
+enum TeamType {
+  CLUB
+  REGIONAL
+  CITY
+  NATIONAL
+}
+
+enum RegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  WITHDRAWN
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  BANK_TRANSFER
+  ONLINE
+}
+
+enum MembershipStatus {
+  PENDING
+  ACTIVE
+  EXPIRED
+  CANCELLED
+}
+
+enum MatchStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum MatchType {
+  REGULAR
+  FINAL
+  BRONZE
+  BYE
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  MIXED
+}
+
+enum JudgeRole {
+  ARBITER
+  REFEREE
+  JUDGE
+  CORNER_JUDGE
+  MIRROR_JUDGE
+  LINE_JUDGE
+  SECRETARY
+  DOCTOR
+  CLASSIFIER
+}
+
+enum JudgeCategory {
+  INTERNATIONAL
+  NATIONAL
+  REGIONAL
+}
+
+enum DisciplineType {
+  HYONG
+  MASSOGI
+  POINT_STOP
+  TEAM_HYONG
+  TEAM_MASSOGI
+  TEAM_POINT_STOP
+  SPECIAL_TECHNIQUE
+  POWER_BREAKING
+}
+
+enum DisciplineLevel {
+  FESTIVAL
+  OFFICIAL
+  WORLD
+}
+
+enum DocumentStatus {
+  VALID
+  INVALID
+  PENDING
+  EXPIRED
+}
+
+enum RelationType {
+  MOTHER
+  FATHER
+  GUARDIAN
+  SIBLING
+  TRAINER
+  COACH
+  OTHER
+}
+
+enum TrainerRank {
+  HEAD_COACH
+  SENIOR_COACH
+  COACH
+  ASSISTANT_COACH
+}
+
+// ==================== CORE MODELS ====================
+
+model User {
+  id                  Int       @id @default(autoincrement())
+  name                String
+  nameLatin           String?   @map("name_latin")
+  email               String?   @unique
+  login               String?   @unique
+  phone               String?   @db.VarChar(20)
+  type                UserType  @default(ADMIN)
+  code                Int       @default(0)
+  entityId            Int       @default(0) @map("entity_id")
+  federationId        Int?      @map("federation_id")
+  telegramChatId      String?   @map("telegram_chat_id")
+  telegramUsername    String?   @map("telegram_username")
+  telegramVerifiedAt  DateTime? @map("telegram_verified_at")
+  emailVerifiedAt     DateTime? @map("email_verified_at")
+  rememberToken       String?   @map("remember_token")
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  federation          Federation?               @relation(fields: [federationId], references: [id])
+  loginPins           LoginPin[]
+  competitionsCreated Competition[]             @relation("CreatedBy")
+  competitionsUpdated Competition[]             @relation("UpdatedBy")
+  membershipPayments  MembershipPayment[]       @relation("PaymentUser")
+  confirmedPayments   MembershipPayment[]       @relation("ConfirmedBy")
+  registrationsBy     CompetitionRegistration[] @relation("RegisteredBy")
+  approvalsBy         CompetitionRegistration[] @relation("ApprovedBy")
+  judgesCreated       Judge[]                   @relation("JudgeCreatedBy")
+  judgeUser           Judge?                    @relation("JudgeUser")
+  competitionJudges   CompetitionJudge[]
+  matchJudges         MatchJudge[]
+  activityLogs        ActivityLog[]             @relation("CauserUser")
+  notificationLogs    NotificationLog[]
+  federationAdmins    FederationAdmin[]
+
+  @@index([type, entityId])
+  @@index([phone])
+  @@map("users")
+}
+
+model Federation {
+  id              Int               @id @default(autoincrement())
+  countryId       Int               @map("country_id")
+  code            String            @unique @db.VarChar(10)
+  name            String            @db.VarChar(100)
+  nameEn          String?           @map("name_en") @db.VarChar(100)
+  fullName        Json?             @map("full_name")
+  domain          String            @unique @db.VarChar(100)
+  customDomain    String?           @unique @map("custom_domain") @db.VarChar(100)
+  logo            String?           @db.VarChar(255)
+  heroBackground  String?           @map("hero_background") @db.VarChar(255)
+  description     Json?
+  siteTitle       Json?             @map("site_title")
+  metaDescription Json?             @map("meta_description")
+  metaKeywords    Json?             @map("meta_keywords")
+  workingHours    Json?             @map("working_hours")
+  aboutText       Json?             @map("about_text")
+  address         Json?
+  settings        Json?
+  status          FederationStatus  @default(ACTIVE)
+  timezone        String            @default("Asia/Bishkek") @db.VarChar(50)
+  currency        String            @default("KGS") @db.VarChar(3)
+  languages       Json?
+  primaryLanguage String            @default("ru") @map("primary_language") @db.VarChar(2)
+  contactEmail    String?           @map("contact_email") @db.VarChar(100)
+  contactPhone    String?           @map("contact_phone") @db.VarChar(20)
+  instagram       String?           @db.VarChar(100)
+  facebook        String?           @db.VarChar(100)
+  youtube         String?           @db.VarChar(100)
+  phones          Json?
+  foundedDate     DateTime?         @map("founded_date") @db.Date
+  createdAt       DateTime          @default(now()) @map("created_at")
+  updatedAt       DateTime          @updatedAt @map("updated_at")
+  deletedAt       DateTime?         @map("deleted_at")
+
+  // Relations
+  country         Country           @relation(fields: [countryId], references: [id])
+  users           User[]
+  sportsmen       Sportsman[]
+  trainers        Trainer[]
+  clubs           Club[]
+  competitions    Competition[]
+  judges          Judge[]
+  news            News[]
+  memberships     Membership[]
+  teams           Team[]
+  partners        Partner[]
+  settings_rel    Setting[]
+  admins          FederationAdmin[]
+
+  @@index([status, countryId])
+  @@index([domain])
+  @@map("federations")
+}
+
+model FederationAdmin {
+  id           Int       @id @default(autoincrement())
+  federationId Int       @map("federation_id")
+  userId       Int       @map("user_id")
+  role         String    @default("admin")
+  permissions  Json?
+  isActive     Boolean   @default(true) @map("is_active")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  federation Federation @relation(fields: [federationId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([federationId, userId])
+  @@map("federation_admins")
+}
+
+// ==================== GEOGRAPHY ====================
+
+model Country {
+  id          Int      @id @default(autoincrement())
+  code        String   @unique @db.VarChar(2)
+  codeAlpha3  String?  @map("code_alpha3") @db.VarChar(3)
+  nameEn      String   @map("name_en") @db.VarChar(100)
+  nameRu      String?  @map("name_ru") @db.VarChar(100)
+  nameKg      String?  @map("name_kg") @db.VarChar(100)
+  nameAr      String?  @map("name_ar") @db.VarChar(100)
+  phoneCode   String?  @map("phone_code") @db.VarChar(10)
+  currency    String?  @db.VarChar(3)
+  flagEmoji   String?  @map("flag_emoji") @db.VarChar(10)
+  flagSvg     String?  @map("flag_svg") @db.VarChar(255)
+  isActive    Boolean  @default(true) @map("is_active")
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  federations  Federation[]
+  regions      Region[]
+  sportsmen    Sportsman[]
+  trainers     Trainer[]
+  clubs        Club[]
+  competitions Competition[]
+  judges       Judge[]
+  addresses    Address[]
+
+  @@map("countries")
+}
+
+model Region {
+  id        Int      @id @default(autoincrement())
+  countryId Int      @map("country_id")
+  title     String?  @db.VarChar(100)
+  nameEn    String?  @map("name_en") @db.VarChar(100)
+  nameRu    String?  @map("name_ru") @db.VarChar(100)
+  nameKg    String?  @map("name_kg") @db.VarChar(100)
+  nameAr    String?  @map("name_ar") @db.VarChar(100)
+  code      String?  @db.VarChar(20)
+  type      String?  @db.VarChar(50)
+  ordering  Int      @default(0)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  country      Country       @relation(fields: [countryId], references: [id])
+  cities       City[]
+  sportsmen    Sportsman[]
+  trainers     Trainer[]
+  clubs        Club[]
+  competitions Competition[]
+  judges       Judge[]
+  teams        Team[]
+  addresses    Address[]
+
+  @@index([countryId])
+  @@map("regions")
+}
+
+model City {
+  id         Int      @id @default(autoincrement())
+  regionId   Int      @map("region_id")
+  nameEn     String?  @map("name_en") @db.VarChar(100)
+  nameRu     String?  @map("name_ru") @db.VarChar(100)
+  nameKg     String?  @map("name_kg") @db.VarChar(100)
+  nameAr     String?  @map("name_ar") @db.VarChar(100)
+  latitude   Decimal? @db.Decimal(10, 7)
+  longitude  Decimal? @db.Decimal(10, 7)
+  postalCode String?  @map("postal_code") @db.VarChar(20)
+  population Int?
+  isCapital  Boolean  @default(false) @map("is_capital")
+  sortOrder  Int      @default(0) @map("sort_order")
+  isActive   Boolean  @default(true) @map("is_active")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  region       Region        @relation(fields: [regionId], references: [id])
+  sportsmen    Sportsman[]
+  trainers     Trainer[]
+  clubs        Club[]
+  competitions Competition[]
+  judges       Judge[]
+  teams        Team[]
+  addresses    Address[]
+
+  @@index([regionId])
+  @@map("cities")
+}
+
+model Address {
+  id              Int      @id @default(autoincrement())
+  addressableType String   @map("addressable_type") @db.VarChar(100)
+  addressableId   Int      @map("addressable_id")
+  countryId       Int?     @map("country_id")
+  regionId        Int?     @map("region_id")
+  cityId          Int?     @map("city_id")
+  street          String?  @db.VarChar(255)
+  building        String?  @db.VarChar(50)
+  apartment       String?  @db.VarChar(20)
+  postalCode      String?  @map("postal_code") @db.VarChar(20)
+  fullAddress     String?  @map("full_address")
+  mapLink2gis     String?  @map("map_link_2gis") @db.VarChar(500)
+  mapLinkGoogle   String?  @map("map_link_google") @db.VarChar(500)
+  latitude        Decimal? @db.Decimal(10, 7)
+  longitude       Decimal? @db.Decimal(10, 7)
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  country Country? @relation(fields: [countryId], references: [id])
+  region  Region?  @relation(fields: [regionId], references: [id])
+  city    City?    @relation(fields: [cityId], references: [id])
+
+  @@index([addressableType, addressableId])
+  @@map("addresses")
+}
+
+// ==================== CLUBS & TRAINERS ====================
+
+model Club {
+  id           Int      @id @default(autoincrement())
+  federationId Int?     @map("federation_id")
+  title        Json?
+  description  Json?
+  logo         String?  @db.VarChar(255)
+  address      Json?
+  instagram    String?  @db.VarChar(100)
+  rating       Int      @default(0)
+  countryId    Int?     @map("country_id")
+  regionId     Int?     @map("region_id")
+  cityId       Int?     @map("city_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  federation Federation? @relation(fields: [federationId], references: [id])
+  country    Country?    @relation(fields: [countryId], references: [id])
+  region     Region?     @relation(fields: [regionId], references: [id])
+  city       City?       @relation(fields: [cityId], references: [id])
+  sportsmen  Sportsman[]
+  trainers   Trainer[]
+  teams      Team[]
+  ratings    ClubRating[]
+
+  @@index([federationId])
+  @@map("clubs")
+}
+
+model Trainer {
+  id               Int         @id @default(autoincrement())
+  federationId     Int?        @map("federation_id")
+  fio              String?     @db.VarChar(255)
+  lastName         String?     @map("last_name") @db.VarChar(100)
+  firstName        String?     @map("first_name") @db.VarChar(100)
+  middleName       String?     @map("middle_name") @db.VarChar(100)
+  firstNameLatin   String?     @map("first_name_latin") @db.VarChar(100)
+  lastNameLatin    String?     @map("last_name_latin") @db.VarChar(100)
+  middleNameLatin  String?     @map("middle_name_latin") @db.VarChar(100)
+  publicId         String?     @unique @map("public_id") @db.VarChar(20)
+  phone            String?     @db.VarChar(20)
+  photo            String?     @db.VarChar(255)
+  clubId           Int?        @map("club_id")
+  countryId        Int?        @map("country_id")
+  regionId         Int?        @map("region_id")
+  cityId           Int?        @map("city_id")
+  contacts         String?
+  description      String?
+  position         String?     @db.VarChar(100)
+  rank             TrainerRank @default(COACH)
+  instagram        String?     @db.VarChar(100)
+  ordering         Int         @default(0)
+  dateOfBirth      DateTime?   @map("date_of_birth") @db.Date
+  dateStart        DateTime?   @map("date_start") @db.Date
+  createdAt        DateTime    @default(now()) @map("created_at")
+  updatedAt        DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  federation   Federation?           @relation(fields: [federationId], references: [id])
+  club         Club?                 @relation(fields: [clubId], references: [id], onDelete: SetNull)
+  country      Country?              @relation(fields: [countryId], references: [id])
+  region       Region?               @relation(fields: [regionId], references: [id])
+  city         City?                 @relation(fields: [cityId], references: [id])
+  sportsmen    Sportsman[]
+  attestations TrainerAttestation[]
+  teamsCoach   Team[]                @relation("TeamCoach")
+
+  @@index([federationId])
+  @@index([clubId])
+  @@map("trainers")
+}
+
+// ==================== SPORTSMEN ====================
+
+model Sportsman {
+  id                  Int       @id @default(autoincrement())
+  federationId        Int?      @map("federation_id")
+  fio                 String?   @db.VarChar(255)
+  lastName            String?   @map("last_name") @db.VarChar(100)
+  firstName           String?   @map("first_name") @db.VarChar(100)
+  middleName          String?   @map("middle_name") @db.VarChar(100)
+  firstNameLatin      String?   @map("first_name_latin") @db.VarChar(100)
+  lastNameLatin       String?   @map("last_name_latin") @db.VarChar(100)
+  middleNameLatin     String?   @map("middle_name_latin") @db.VarChar(100)
+  publicId            String?   @unique @map("public_id") @db.VarChar(20)
+  phone               String?   @db.VarChar(20)
+  telegramChatId      String?   @map("telegram_chat_id")
+  telegramUsername    String?   @map("telegram_username")
+  telegramVerifiedAt  DateTime? @map("telegram_verified_at")
+  photo               String?   @db.VarChar(255)
+  trainerId           Int?      @map("trainer_id")
+  parentId            Int?      @map("parent_id")
+  membershipId        Int?      @map("membership_id")
+  clubId              Int?      @map("club_id")
+  level               Int       @default(10)
+  beltLevel           Int       @default(10) @map("belt_level")
+  gyp                 Int       @default(10)
+  dan                 Int       @default(0)
+  dateOfBirth         DateTime? @map("date_of_birth") @db.Date
+  dateMed             DateTime? @map("date_med") @db.Date
+  dateStart           DateTime? @map("date_start") @db.Date
+  medicalCert         String?   @map("medical_cert") @db.VarChar(255)
+  sex                 Int       @default(0)
+  countryId           Int?      @map("country_id")
+  regionId            Int?      @map("region_id")
+  cityId              Int?      @map("city_id")
+  weight              Float?
+  height              Float?
+  categoryId          Int?      @map("category_id")
+  instagram           String?   @db.VarChar(100)
+  rating              Int       @default(0)
+  goldMedals          Int       @default(0) @map("gold_medals")
+  silverMedals        Int       @default(0) @map("silver_medals")
+  bronzeMedals        Int       @default(0) @map("bronze_medals")
+  category            String?   @db.VarChar(50)
+  ageDays             Int?      @map("age_days")
+  direction           String?   @db.VarChar(50)
+  countryOld          String?   @map("country") @db.VarChar(50)
+  isNew               Boolean   @default(false) @map("is_new")
+  iin                 String?   @db.VarChar(20)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  federation              Federation?               @relation(fields: [federationId], references: [id])
+  trainer                 Trainer?                  @relation(fields: [trainerId], references: [id])
+  club                    Club?                     @relation(fields: [clubId], references: [id], onDelete: Cascade)
+  country                 Country?                  @relation(fields: [countryId], references: [id])
+  region                  Region?                   @relation(fields: [regionId], references: [id])
+  city                    City?                     @relation(fields: [cityId], references: [id])
+  categoryRel             Category?                 @relation(fields: [categoryId], references: [id])
+  membership              Membership?               @relation(fields: [membershipId], references: [id])
+  attestations            Attestation[]
+  weightHistory           WeightHistory[]
+  registrations           CompetitionRegistration[]
+  teamMemberships         TeamMember[]
+  teamsCaptain            Team[]                    @relation("TeamCaptain")
+  ratings                 Rating[]
+  ratingHistory           RatingHistory[]
+  representatives         SportsmanRepresentative[]
+
+  @@index([federationId])
+  @@index([clubId])
+  @@index([trainerId])
+  @@map("sportsmen")
+}
+
+// ==================== COMPETITIONS ====================
+
+model Competition {
+  id                           Int               @id @default(autoincrement())
+  federationId                 Int?              @map("federation_id")
+  title                        Json?
+  description                  Json?
+  photo                        String?           @db.VarChar(255)
+  venue                        Json?
+  countryId                    Int?              @map("country_id")
+  regionId                     Int?              @map("region_id")
+  cityId                       Int?              @map("city_id")
+  startDate                    DateTime          @map("start_date") @db.Date
+  endDate                      DateTime          @map("end_date") @db.Date
+  registrationDeadline         DateTime?         @map("registration_deadline") @db.Date
+  withdrawalDeadline           DateTime?         @map("withdrawal_deadline") @db.Date
+  status                       CompetitionStatus @default(DRAFT)
+  type                         CompetitionType   @default(MIXED)
+  format                       CompetitionType   @default(MIXED)
+  level                        CompetitionLevel  @default(NATIONAL)
+  ratingType                   RatingType        @default(OFFICIAL) @map("rating_type")
+  teamType                     TeamType?         @map("team_type")
+  weighInDate                  DateTime?         @map("weigh_in_date") @db.Date
+  medicalCheckRequired         Boolean           @default(true) @map("medical_check_required")
+  isPaid                       Boolean           @default(false) @map("is_paid")
+  entryFee                     Decimal?          @map("entry_fee") @db.Decimal(10, 2)
+  registrationFee              Decimal?          @map("registration_fee") @db.Decimal(10, 2)
+  baseRegistrationFee          Decimal?          @map("base_registration_fee") @db.Decimal(10, 2)
+  additionalDisciplineFee      Decimal?          @map("additional_discipline_fee") @db.Decimal(10, 2)
+  includedDisciplines          Int               @default(1) @map("included_disciplines")
+  teamRegistrationFeePerPerson Decimal?          @map("team_registration_fee_per_person") @db.Decimal(10, 2)
+  teamDisciplineFeePerPerson   Decimal?          @map("team_discipline_fee_per_person") @db.Decimal(10, 2)
+  earlyBirdFee                 Decimal?          @map("early_bird_fee") @db.Decimal(10, 2)
+  earlyBirdDeadline            DateTime?         @map("early_bird_deadline") @db.Date
+  allowGroupPayment            Boolean           @default(false) @map("allow_group_payment")
+  paymentMethods               Json?             @map("payment_methods")
+  requirePaymentConfirmation   Boolean           @default(false) @map("require_payment_confirmation")
+  currency                     String            @default("KGS") @db.VarChar(3)
+  rulesVersion                 String?           @map("rules_version") @db.VarChar(50)
+  tatamiCount                  Int               @default(1) @map("tatami_count")
+  competitionLevel             String?           @map("competition_level") @db.VarChar(50)
+  minGyp1011                   Int?              @map("min_gyp_10_11")
+  minGyp1214                   Int?              @map("min_gyp_12_14")
+  minGyp1517                   Int?              @map("min_gyp_15_17")
+  minDan18Plus                 Int?              @map("min_dan_18_plus")
+  exceptions                   Json?
+  createdById                  Int?              @map("created_by")
+  updatedById                  Int?              @map("updated_by")
+  cancellationReason           String?           @map("cancellation_reason")
+  createdAt                    DateTime          @default(now()) @map("created_at")
+  updatedAt                    DateTime          @updatedAt @map("updated_at")
+  deletedAt                    DateTime?         @map("deleted_at")
+
+  // Relations
+  federation    Federation?               @relation(fields: [federationId], references: [id])
+  country       Country?                  @relation(fields: [countryId], references: [id])
+  region        Region?                   @relation(fields: [regionId], references: [id])
+  city          City?                     @relation(fields: [cityId], references: [id])
+  createdBy     User?                     @relation("CreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  updatedBy     User?                     @relation("UpdatedBy", fields: [updatedById], references: [id], onDelete: SetNull)
+  disciplines   CompetitionDiscipline[]
+  categories    CompetitionCategory[]
+  registrations CompetitionRegistration[]
+  judges        CompetitionJudge[]
+  teams         Team[]
+  weightHistory WeightHistory[]
+
+  @@index([status])
+  @@index([level])
+  @@index([startDate, endDate])
+  @@index([federationId])
+  @@map("competitions")
+}
+
+model CompetitionDiscipline {
+  id                Int             @id @default(autoincrement())
+  competitionId     Int             @map("competition_id")
+  disciplineId      Int             @map("discipline_id")
+  disciplineLevel   DisciplineLevel @default(OFFICIAL) @map("discipline_level")
+  isActive          Boolean         @default(true) @map("is_active")
+  registrationLimit Int?            @map("registration_limit")
+  minParticipants   Int?            @map("min_participants")
+  maxParticipants   Int?            @map("max_participants")
+  createdAt         DateTime        @default(now()) @map("created_at")
+  updatedAt         DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  competition Competition           @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  discipline  Discipline            @relation(fields: [disciplineId], references: [id])
+  categories  CompetitionCategory[]
+
+  @@unique([competitionId, disciplineId, disciplineLevel])
+  @@map("competition_disciplines")
+}
+
+model CompetitionCategory {
+  id                      Int             @id @default(autoincrement())
+  competitionId           Int             @map("competition_id")
+  competitionDisciplineId Int?            @map("competition_discipline_id")
+  disciplineId            Int?            @map("discipline_id")
+  level                   DisciplineLevel @default(OFFICIAL)
+  ageCategoryId           Int?            @map("age_category_id")
+  weightCategoryId        Int?            @map("weight_category_id")
+  beltCategoryId          Int?            @map("belt_category_id")
+  gender                  Gender          @default(MALE)
+  name                    String?         @db.VarChar(255)
+  code                    String?         @db.VarChar(100)
+  minParticipants         Int?            @map("min_participants")
+  maxParticipants         Int?            @map("max_participants")
+  status                  String          @default("active") @db.VarChar(20)
+  bracketGeneratedAt      DateTime?       @map("bracket_generated_at")
+  tatamiNumber            Int?            @map("tatami_number")
+  scheduledStartTime      DateTime?       @map("scheduled_start_time")
+  scheduledEndTime        DateTime?       @map("scheduled_end_time")
+  actualStartTime         DateTime?       @map("actual_start_time")
+  estimatedDuration       Int?            @map("estimated_duration")
+  categoryStatus          String?         @map("category_status") @db.VarChar(20)
+  createdAt               DateTime        @default(now()) @map("created_at")
+  updatedAt               DateTime        @updatedAt @map("updated_at")
+
+  // Relations
+  competition           Competition              @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competitionDiscipline CompetitionDiscipline?   @relation(fields: [competitionDisciplineId], references: [id])
+  discipline            Discipline?              @relation(fields: [disciplineId], references: [id])
+  ageCategory           AgeCategory?             @relation(fields: [ageCategoryId], references: [id])
+  weightCategory        WeightCategory?          @relation(fields: [weightCategoryId], references: [id])
+  beltCategory          BeltCategory?            @relation(fields: [beltCategoryId], references: [id])
+  registrations         CompetitionRegistration[]
+  bracket               CompetitionBracket?
+
+  @@index([competitionId])
+  @@map("competition_categories")
+}
+
+model CompetitionRegistration {
+  id                      Int                @id @default(autoincrement())
+  competitionId           Int                @map("competition_id")
+  competitionCategoryId   Int?               @map("competition_category_id")
+  sportsmanId             Int?               @map("sportsman_id")
+  teamId                  Int?               @map("team_id")
+  registrationType        String             @default("individual") @map("registration_type") @db.VarChar(20)
+  currentWeight           Float?             @map("current_weight")
+  confirmedWeight         Float?             @map("confirmed_weight")
+  isWeighedIn             Boolean            @default(false) @map("is_weighed_in")
+  weighedInAt             DateTime?          @map("weighed_in_at")
+  beltLevel               Int?               @map("belt_level")
+  selectedDisciplines     Json?              @map("selected_disciplines")
+  baseFee                 Decimal?           @map("base_fee") @db.Decimal(10, 2)
+  additionalDisciplinesFee Decimal?          @map("additional_disciplines_fee") @db.Decimal(10, 2)
+  totalFee                Decimal?           @map("total_fee") @db.Decimal(10, 2)
+  status                  RegistrationStatus @default(PENDING)
+  medicalCertStatus       DocumentStatus     @default(PENDING) @map("medical_cert_status")
+  insuranceStatus         DocumentStatus     @default(PENDING) @map("insurance_status")
+  parentConsentStatus     DocumentStatus     @default(PENDING) @map("parent_consent_status")
+  paymentId               Int?               @map("payment_id")
+  paymentStatus           PaymentStatus      @default(PENDING) @map("payment_status")
+  paymentAmount           Decimal?           @map("payment_amount") @db.Decimal(10, 2)
+  paymentMethod           PaymentMethod?     @map("payment_method")
+  paymentReceipt          String?            @map("payment_receipt") @db.VarChar(255)
+  paymentDate             DateTime?          @map("payment_date")
+  exchangeRate            Decimal?           @map("exchange_rate") @db.Decimal(10, 6)
+  registeredById          Int?               @map("registered_by")
+  registeredAt            DateTime?          @map("registered_at")
+  approvedById            Int?               @map("approved_by")
+  approvedAt              DateTime?          @map("approved_at")
+  rejectionReason         String?            @map("rejection_reason")
+  tatamiNumber            Int?               @map("tatami_number")
+  callTime                DateTime?          @map("call_time")
+  fightTime               DateTime?          @map("fight_time")
+  notes                   String?
+  createdAt               DateTime           @default(now()) @map("created_at")
+  updatedAt               DateTime           @updatedAt @map("updated_at")
+
+  // Relations
+  competition         Competition          @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  competitionCategory CompetitionCategory? @relation(fields: [competitionCategoryId], references: [id])
+  sportsman           Sportsman?           @relation(fields: [sportsmanId], references: [id])
+  team                Team?                @relation(fields: [teamId], references: [id])
+  registeredBy        User?                @relation("RegisteredBy", fields: [registeredById], references: [id])
+  approvedBy          User?                @relation("ApprovedBy", fields: [approvedById], references: [id])
+  payment             MembershipPayment?   @relation(fields: [paymentId], references: [id])
+  matchesAsParticipant1 CompetitionMatch[] @relation("Participant1")
+  matchesAsParticipant2 CompetitionMatch[] @relation("Participant2")
+  matchesAsWinner       CompetitionMatch[] @relation("Winner")
+  matchScores           MatchScore[]
+
+  @@index([competitionId])
+  @@index([sportsmanId])
+  @@map("competition_registrations")
+}
+
+model CompetitionBracket {
+  id                    Int         @id @default(autoincrement())
+  competitionCategoryId Int         @unique @map("competition_category_id")
+  bracketType           String      @default("single_elimination") @map("bracket_type") @db.VarChar(50)
+  bracketSize           Int         @default(0) @map("bracket_size")
+  status                String      @default("pending") @db.VarChar(20)
+  generatedAt           DateTime?   @map("generated_at")
+  createdAt             DateTime    @default(now()) @map("created_at")
+  updatedAt             DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  category CompetitionCategory @relation(fields: [competitionCategoryId], references: [id], onDelete: Cascade)
+  matches  CompetitionMatch[]
+
+  @@map("competition_brackets")
+}
+
+model CompetitionMatch {
+  id                   Int         @id @default(autoincrement())
+  bracketId            Int         @map("bracket_id")
+  competitionBracketId Int?        @map("competition_bracket_id")
+  roundNumber          Int         @default(1) @map("round_number")
+  round                String?     @db.VarChar(50)
+  matchNumber          Int         @default(0) @map("match_number")
+  position             Int         @default(0)
+  previousMatch1Id     Int?        @map("previous_match1_id")
+  previousMatch2Id     Int?        @map("previous_match2_id")
+  participant1Id       Int?        @map("participant1_id")
+  participant2Id       Int?        @map("participant2_id")
+  winnerId             Int?        @map("winner_id")
+  score1               Int?
+  score2               Int?
+  status               MatchStatus @default(SCHEDULED)
+  type                 MatchType   @default(REGULAR)
+  isConsolation        Boolean     @default(false) @map("is_consolation")
+  scheduledTime        DateTime?   @map("scheduled_time")
+  startedAt            DateTime?   @map("started_at")
+  endedAt              DateTime?   @map("ended_at")
+  area                 String?     @db.VarChar(50)
+  durationMinutes      Int?        @map("duration_minutes")
+  notes                String?
+  createdAt            DateTime    @default(now()) @map("created_at")
+  updatedAt            DateTime    @updatedAt @map("updated_at")
+
+  // Relations
+  bracket        CompetitionBracket       @relation(fields: [bracketId], references: [id], onDelete: Cascade)
+  previousMatch1 CompetitionMatch?        @relation("PreviousMatch1", fields: [previousMatch1Id], references: [id])
+  previousMatch2 CompetitionMatch?        @relation("PreviousMatch2", fields: [previousMatch2Id], references: [id])
+  participant1   CompetitionRegistration? @relation("Participant1", fields: [participant1Id], references: [id])
+  participant2   CompetitionRegistration? @relation("Participant2", fields: [participant2Id], references: [id])
+  winner         CompetitionRegistration? @relation("Winner", fields: [winnerId], references: [id])
+  nextMatch1     CompetitionMatch[]       @relation("PreviousMatch1")
+  nextMatch2     CompetitionMatch[]       @relation("PreviousMatch2")
+  scores         MatchScore[]
+  judges         MatchJudge[]
+
+  @@index([bracketId])
+  @@map("competition_matches")
+}
+
+model MatchScore {
+  id            Int      @id @default(autoincrement())
+  matchId       Int      @map("match_id")
+  participantId Int      @map("participant_id")
+  points        Int      @default(0)
+  penaltyCount  Int      @default(0) @map("penalty_count")
+  penaltyType   String?  @map("penalty_type") @db.VarChar(50)
+  timestamp     DateTime @default(now())
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  match       CompetitionMatch        @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  participant CompetitionRegistration @relation(fields: [participantId], references: [id])
+
+  @@map("match_scores")
+}
+
+// ==================== JUDGES ====================
+
+model Judge {
+  id                Int           @id @default(autoincrement())
+  firstName         String        @map("first_name") @db.VarChar(100)
+  lastName          String        @map("last_name") @db.VarChar(100)
+  patronymic        String?       @db.VarChar(100)
+  photo             String?       @db.VarChar(255)
+  phone             String?       @db.VarChar(20)
+  email             String?       @db.VarChar(100)
+  telegramChatId    String?       @map("telegram_chat_id")
+  countryId         Int?          @map("country_id")
+  regionId          Int?          @map("region_id")
+  cityId            Int?          @map("city_id")
+  judgeRole         JudgeRole     @default(JUDGE) @map("judge_role")
+  judgeCategory     JudgeCategory @default(NATIONAL) @map("judge_category")
+  certificateNumber String?       @map("certificate_number") @db.VarChar(50)
+  licenseDate       DateTime?     @map("license_date") @db.Date
+  licenseExpiry     DateTime?     @map("license_expiry") @db.Date
+  startDate         DateTime?     @map("start_date") @db.Date
+  experienceYears   Int?          @map("experience_years")
+  isInternational   Boolean       @default(false) @map("is_international")
+  isActive          Boolean       @default(true) @map("is_active")
+  userId            Int?          @unique @map("user_id")
+  federationId      Int?          @map("federation_id")
+  createdById       Int?          @map("created_by")
+  createdAt         DateTime      @default(now()) @map("created_at")
+  updatedAt         DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  country           Country?           @relation(fields: [countryId], references: [id])
+  region            Region?            @relation(fields: [regionId], references: [id])
+  city              City?              @relation(fields: [cityId], references: [id])
+  user              User?              @relation("JudgeUser", fields: [userId], references: [id])
+  federation        Federation?        @relation(fields: [federationId], references: [id])
+  createdBy         User?              @relation("JudgeCreatedBy", fields: [createdById], references: [id])
+  disciplines       JudgeDiscipline[]
+  competitionJudges CompetitionJudge[]
+  matchJudges       MatchJudge[]
+
+  @@index([federationId])
+  @@index([isActive])
+  @@map("judges")
+}
+
+model JudgeDiscipline {
+  id           Int      @id @default(autoincrement())
+  judgeId      Int      @map("judge_id")
+  disciplineId Int      @map("discipline_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  judge      Judge      @relation(fields: [judgeId], references: [id], onDelete: Cascade)
+  discipline Discipline @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
+
+  @@unique([judgeId, disciplineId])
+  @@map("judge_disciplines")
+}
+
+model CompetitionJudge {
+  id            Int      @id @default(autoincrement())
+  competitionId Int      @map("competition_id")
+  judgeId       Int?     @map("judge_id")
+  userId        Int?     @map("user_id")
+  role          String   @default("judge") @db.VarChar(50)
+  assignedAt    DateTime @default(now()) @map("assigned_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  competition Competition @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  judge       Judge?      @relation(fields: [judgeId], references: [id])
+  user        User?       @relation(fields: [userId], references: [id])
+
+  @@index([competitionId])
+  @@map("competition_judges")
+}
+
+model MatchJudge {
+  id         Int      @id @default(autoincrement())
+  matchId    Int      @map("match_id")
+  judgeId    Int?     @map("judge_id")
+  userId     Int?     @map("user_id")
+  position   String   @default("judge") @db.VarChar(50)
+  assignedAt DateTime @default(now()) @map("assigned_at")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  match CompetitionMatch @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  judge Judge?           @relation(fields: [judgeId], references: [id])
+  user  User?            @relation(fields: [userId], references: [id])
+
+  @@index([matchId])
+  @@map("match_judges")
+}
+
+// ==================== TEAMS ====================
+
+model Team {
+  id            Int       @id @default(autoincrement())
+  name          String    @db.VarChar(255)
+  teamType      TeamType  @default(CLUB) @map("team_type")
+  clubId        Int?      @map("club_id")
+  federationId  Int?      @map("federation_id")
+  regionId      Int?      @map("region_id")
+  cityId        Int?      @map("city_id")
+  competitionId Int       @map("competition_id")
+  coachId       Int?      @map("coach_id")
+  captainId     Int?      @map("captain_id")
+  category      String?   @db.VarChar(100)
+  gender        Gender    @default(MIXED)
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  club          Club?                     @relation(fields: [clubId], references: [id])
+  federation    Federation?               @relation(fields: [federationId], references: [id])
+  region        Region?                   @relation(fields: [regionId], references: [id])
+  city          City?                     @relation(fields: [cityId], references: [id])
+  competition   Competition               @relation(fields: [competitionId], references: [id], onDelete: Cascade)
+  coach         Trainer?                  @relation("TeamCoach", fields: [coachId], references: [id])
+  captain       Sportsman?                @relation("TeamCaptain", fields: [captainId], references: [id])
+  members       TeamMember[]
+  registrations CompetitionRegistration[]
+
+  @@index([competitionId])
+  @@map("teams")
+}
+
+model TeamMember {
+  id          Int       @id @default(autoincrement())
+  teamId      Int       @map("team_id")
+  sportsmanId Int       @map("sportsman_id")
+  position    String?   @db.VarChar(50)
+  joinedAt    DateTime  @default(now()) @map("joined_at")
+  leftAt      DateTime? @map("left_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  sportsman Sportsman @relation(fields: [sportsmanId], references: [id])
+
+  @@unique([teamId, sportsmanId])
+  @@map("team_members")
+}
+
+// ==================== DISCIPLINES & CATEGORIES ====================
+
+model Discipline {
+  id                  Int            @id @default(autoincrement())
+  code                String         @unique @db.VarChar(50)
+  name                String         @db.VarChar(100)
+  nameRu              String?        @map("name_ru") @db.VarChar(100)
+  nameEn              String?        @map("name_en") @db.VarChar(100)
+  nameI18n            Json?          @map("name_i18n")
+  type                DisciplineType @default(MASSOGI)
+  hasWeightCategories Boolean        @default(true) @map("has_weight_categories")
+  hasBeltCategories   Boolean        @default(true) @map("has_belt_categories")
+  teamSize            Int?           @map("team_size")
+  description         String?
+  descriptionI18n     Json?          @map("description_i18n")
+  sortOrder           Int            @default(0) @map("sort_order")
+  isActive            Boolean        @default(true) @map("is_active")
+  createdAt           DateTime       @default(now()) @map("created_at")
+  updatedAt           DateTime       @updatedAt @map("updated_at")
+
+  // Relations
+  beltCategories          BeltCategory[]
+  weightCategories        WeightCategory[]
+  competitionDisciplines  CompetitionDiscipline[]
+  competitionCategories   CompetitionCategory[]
+  judgeDisciplines        JudgeDiscipline[]
+
+  @@map("disciplines")
+}
+
+model AgeCategory {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique @db.VarChar(20)
+  nameRu    String?  @map("name_ru") @db.VarChar(100)
+  nameEn    String?  @map("name_en") @db.VarChar(100)
+  minAge    Int      @map("min_age")
+  maxAge    Int      @map("max_age")
+  gender    Gender   @default(MIXED)
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  competitionCategories CompetitionCategory[]
+
+  @@map("age_categories")
+}
+
+model WeightCategory {
+  id           Int      @id @default(autoincrement())
+  disciplineId Int?     @map("discipline_id")
+  code         String   @db.VarChar(50)
+  name         String   @db.VarChar(100)
+  minWeight    Float    @map("min_weight")
+  maxWeight    Float    @map("max_weight")
+  gender       Gender   @default(MALE)
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  discipline            Discipline?           @relation(fields: [disciplineId], references: [id])
+  competitionCategories CompetitionCategory[]
+
+  @@index([disciplineId])
+  @@map("weight_categories")
+}
+
+model BeltCategory {
+  id           Int      @id @default(autoincrement())
+  disciplineId Int?     @map("discipline_id")
+  code         String   @db.VarChar(50)
+  name         String   @db.VarChar(100)
+  minLevel     Int      @map("min_level")
+  maxLevel     Int      @map("max_level")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  discipline            Discipline?           @relation(fields: [disciplineId], references: [id])
+  competitionCategories CompetitionCategory[]
+
+  @@index([disciplineId])
+  @@map("belt_categories")
+}
+
+model Category {
+  id        Int      @id @default(autoincrement())
+  title     Json?
+  titleI18n Json?    @map("title_i18n")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sportsmen Sportsman[]
+
+  @@map("categories")
+}
+
+// ==================== REPRESENTATIVES ====================
+
+model Representative {
+  id                 Int       @id @default(autoincrement())
+  firstName          String    @map("first_name") @db.VarChar(100)
+  lastName           String    @map("last_name") @db.VarChar(100)
+  middleName         String?   @map("middle_name") @db.VarChar(100)
+  phone              String    @db.VarChar(20)
+  email              String?   @db.VarChar(100)
+  telegramChatId     String?   @map("telegram_chat_id")
+  telegramUsername   String?   @map("telegram_username")
+  telegramVerifiedAt DateTime? @map("telegram_verified_at")
+  relation           RelationType @default(GUARDIAN)
+  notes              String?
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sportsmen SportsmanRepresentative[]
+
+  @@map("representatives")
+}
+
+model SportsmanRepresentative {
+  id               Int       @id @default(autoincrement())
+  sportsmanId      Int       @map("sportsman_id")
+  representativeId Int       @map("representative_id")
+  isPrimary        Boolean   @default(false) @map("is_primary")
+  canEdit          Boolean   @default(false) @map("can_edit")
+  canRegister      Boolean   @default(true) @map("can_register")
+  canPay           Boolean   @default(true) @map("can_pay")
+  verifiedAt       DateTime? @map("verified_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sportsman      Sportsman      @relation(fields: [sportsmanId], references: [id], onDelete: Cascade)
+  representative Representative @relation(fields: [representativeId], references: [id], onDelete: Cascade)
+
+  @@unique([sportsmanId, representativeId])
+  @@map("sportsman_representatives")
+}
+
+// ==================== MEMBERSHIP & PAYMENTS ====================
+
+model Membership {
+  id               Int              @id @default(autoincrement())
+  federationId     Int              @map("federation_id")
+  sportsmanId      Int              @map("sportsman_id")
+  membershipNumber String?          @unique @map("membership_number") @db.VarChar(50)
+  validFrom        DateTime         @map("valid_from") @db.Date
+  validUntil       DateTime         @map("valid_until") @db.Date
+  amount           Decimal          @db.Decimal(10, 2)
+  status           MembershipStatus @default(PENDING)
+  notes            String?
+  createdAt        DateTime         @default(now()) @map("created_at")
+  updatedAt        DateTime         @updatedAt @map("updated_at")
+
+  // Relations
+  federation Federation          @relation(fields: [federationId], references: [id])
+  sportsmen  Sportsman[]
+  payments   MembershipPayment[]
+
+  @@index([federationId])
+  @@index([sportsmanId])
+  @@map("memberships")
+}
+
+model MembershipPayment {
+  id               Int           @id @default(autoincrement())
+  membershipId     Int           @map("membership_id")
+  userId           Int?          @map("user_id")
+  amount           Decimal       @db.Decimal(10, 2)
+  currency         String        @default("KGS") @db.VarChar(3)
+  method           PaymentMethod @default(BANK_TRANSFER)
+  paymentMethod    String?       @map("payment_method") @db.VarChar(50)
+  transactionId    String?       @map("transaction_id") @db.VarChar(100)
+  status           PaymentStatus @default(PENDING)
+  paymentDetails   Json?         @map("payment_details")
+  confirmationData Json?         @map("confirmation_data")
+  confirmedById    Int?          @map("confirmed_by")
+  confirmedAt      DateTime?     @map("confirmed_at")
+  paidAt           DateTime?     @map("paid_at")
+  createdAt        DateTime      @default(now()) @map("created_at")
+  updatedAt        DateTime      @updatedAt @map("updated_at")
+
+  // Relations
+  membership    Membership                @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+  user          User?                     @relation("PaymentUser", fields: [userId], references: [id])
+  confirmedBy   User?                     @relation("ConfirmedBy", fields: [confirmedById], references: [id])
+  registrations CompetitionRegistration[]
+
+  @@index([membershipId])
+  @@map("membership_payments")
+}
+
+// ==================== ATTESTATIONS ====================
+
+model Attestation {
+  id          Int       @id @default(autoincrement())
+  sportsmanId Int       @map("sportsman_id")
+  examiner    String?   @db.VarChar(255)
+  level       Int
+  status      Boolean   @default(true)
+  comment     String?
+  examDate    DateTime? @map("exam_date")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sportsman Sportsman @relation(fields: [sportsmanId], references: [id], onDelete: Cascade)
+
+  @@index([sportsmanId])
+  @@map("attestations")
+}
+
+model TrainerAttestation {
+  id        Int       @id @default(autoincrement())
+  trainerId Int       @map("trainer_id")
+  level     Int
+  status    Boolean   @default(true)
+  comment   String?
+  examDate  DateTime? @map("exam_date")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  trainer Trainer @relation(fields: [trainerId], references: [id], onDelete: Cascade)
+
+  @@index([trainerId])
+  @@map("trainer_attestations")
+}
+
+// ==================== RATINGS ====================
+
+model Rating {
+  id            Int      @id @default(autoincrement())
+  sportsmanId   Int      @map("sportsman_id")
+  competitionId Int?     @map("competition_id")
+  points        Int      @default(0)
+  position      Int?
+  medal         String?  @db.VarChar(20)
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  sportsman Sportsman @relation(fields: [sportsmanId], references: [id], onDelete: Cascade)
+
+  @@index([sportsmanId])
+  @@map("ratings")
+}
+
+model RatingHistory {
+  id            Int      @id @default(autoincrement())
+  sportsmanId   Int      @map("sportsman_id")
+  points        Int      @default(0)
+  change        Int      @default(0)
+  competitionId Int?     @map("competition_id")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  // Relations
+  sportsman Sportsman @relation(fields: [sportsmanId], references: [id], onDelete: Cascade)
+
+  @@index([sportsmanId])
+  @@map("rating_history")
+}
+
+model RatingArchive {
+  id            Int      @id @default(autoincrement())
+  sportsmanId   Int      @map("sportsman_id")
+  competitionId Int?     @map("competition_id")
+  points        Int      @default(0)
+  position      Int?
+  medal         String?  @db.VarChar(20)
+  archivedAt    DateTime @default(now()) @map("archived_at")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@index([sportsmanId])
+  @@map("rating_archives")
+}
+
+model ClubRating {
+  id        Int      @id @default(autoincrement())
+  clubId    Int      @map("club_id")
+  points    Int      @default(0)
+  position  Int?
+  period    String?  @db.VarChar(20)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  club Club @relation(fields: [clubId], references: [id], onDelete: Cascade)
+
+  @@index([clubId])
+  @@map("club_ratings")
+}
+
+// ==================== WEIGHT TRACKING ====================
+
+model WeightHistory {
+  id            Int       @id @default(autoincrement())
+  sportsmanId   Int       @map("sportsman_id")
+  weight        Float
+  recordedAt    DateTime  @default(now()) @map("recorded_at")
+  competitionId Int?      @map("competition_id")
+  notes         String?
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  sportsman   Sportsman    @relation(fields: [sportsmanId], references: [id], onDelete: Cascade)
+  competition Competition? @relation(fields: [competitionId], references: [id])
+
+  @@index([sportsmanId])
+  @@map("weight_history")
+}
+
+model WeighIn {
+  id                Int      @id @default(autoincrement())
+  registrationId    Int      @map("registration_id")
+  weight            Float
+  isOverweight      Boolean  @default(false) @map("is_overweight")
+  isUnderweight     Boolean  @default(false) @map("is_underweight")
+  weighedAt         DateTime @default(now()) @map("weighed_at")
+  weighedById       Int?     @map("weighed_by_id")
+  notes             String?
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([registrationId])
+  @@map("weigh_ins")
+}
+
+// ==================== AUTHENTICATION ====================
+
+model LoginPin {
+  id           Int       @id @default(autoincrement())
+  userId       Int?      @map("user_id")
+  phone        String    @db.VarChar(20)
+  code         String    @db.VarChar(6)
+  attemptCount Int       @default(0) @map("attempt_count")
+  expiresAt    DateTime  @map("expires_at")
+  usedAt       DateTime? @map("used_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([phone])
+  @@map("login_pins")
+}
+
+model PhoneVerification {
+  id           Int       @id @default(autoincrement())
+  phone        String    @db.VarChar(20)
+  code         String    @db.VarChar(6)
+  attemptCount Int       @default(0) @map("attempt_count")
+  verifiedAt   DateTime? @map("verified_at")
+  expiresAt    DateTime  @map("expires_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  @@index([phone])
+  @@map("phone_verifications")
+}
+
+model TelegramVerification {
+  id               Int       @id @default(autoincrement())
+  telegramChatId   String    @map("telegram_chat_id")
+  userId           Int?      @map("user_id")
+  verificationCode String    @map("verification_code") @db.VarChar(10)
+  verifiedAt       DateTime? @map("verified_at")
+  expiresAt        DateTime  @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([telegramChatId])
+  @@map("telegram_verifications")
+}
+
+model TelegramBotUser {
+  id               Int      @id @default(autoincrement())
+  telegramUserId   String   @unique @map("telegram_user_id")
+  telegramChatId   String   @map("telegram_chat_id")
+  telegramUsername String?  @map("telegram_username")
+  firstName        String?  @map("first_name")
+  lastName         String?  @map("last_name")
+  userId           Int?     @map("user_id")
+  state            String?  @db.VarChar(50)
+  data             Json?
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  @@map("telegram_bot_users")
+}
+
+// ==================== CONTENT ====================
+
+model News {
+  id           Int       @id @default(autoincrement())
+  federationId Int?      @map("federation_id")
+  title        Json?
+  description  Json?
+  content      Json?
+  attachments  Json?
+  announce     Json?
+  photo        String?   @db.VarChar(255)
+  pic          String?   @db.VarChar(255)
+  date         DateTime?
+  published    Boolean   @default(false)
+  ordering     Int       @default(0)
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  federation Federation? @relation(fields: [federationId], references: [id])
+
+  @@index([federationId])
+  @@index([published])
+  @@map("news")
+}
+
+model Partner {
+  id           Int      @id @default(autoincrement())
+  federationId Int?     @map("federation_id")
+  name         String   @db.VarChar(255)
+  logo         String?  @db.VarChar(255)
+  url          String?  @db.VarChar(500)
+  description  String?
+  sortOrder    Int      @default(0) @map("sort_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  federation Federation? @relation(fields: [federationId], references: [id])
+
+  @@index([federationId])
+  @@map("partners")
+}
+
+model Slider {
+  id        Int      @id @default(autoincrement())
+  title     String?  @db.VarChar(255)
+  subtitle  String?  @db.VarChar(255)
+  image     String?  @db.VarChar(255)
+  link      String?  @db.VarChar(500)
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sliders")
+}
+
+model Banner {
+  id        Int      @id @default(autoincrement())
+  title     String?  @db.VarChar(255)
+  image     String?  @db.VarChar(255)
+  link      String?  @db.VarChar(500)
+  position  String?  @db.VarChar(50)
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("banners")
+}
+
+model Story {
+  id        Int      @id @default(autoincrement())
+  title     String?  @db.VarChar(255)
+  content   String?
+  image     String?  @db.VarChar(255)
+  author    String?  @db.VarChar(255)
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("stories")
+}
+
+model StaticPage {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique @db.VarChar(100)
+  title     Json?
+  content   Json?
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("static_pages")
+}
+
+model TaekwondoPage {
+  id        Int      @id @default(autoincrement())
+  slug      String   @unique @db.VarChar(100)
+  title     Json?
+  content   Json?
+  sortOrder Int      @default(0) @map("sort_order")
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("taekwondo_pages")
+}
+
+// ==================== ACTIVITY & LOGGING ====================
+
+model ActivityLog {
+  id          Int      @id @default(autoincrement())
+  logName     String?  @map("log_name") @db.VarChar(50)
+  description String
+  subjectType String?  @map("subject_type") @db.VarChar(100)
+  subjectId   Int?     @map("subject_id")
+  causerType  String?  @map("causer_type") @db.VarChar(100)
+  causerId    Int?     @map("causer_id")
+  properties  Json?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  causer User? @relation("CauserUser", fields: [causerId], references: [id])
+
+  @@index([subjectType, subjectId])
+  @@index([causerType, causerId])
+  @@map("activity_log")
+}
+
+model NotificationLog {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  notificationType String    @map("notification_type") @db.VarChar(50)
+  title            String    @db.VarChar(255)
+  message          String
+  readAt           DateTime? @map("read_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("notification_logs")
+}
+
+// ==================== SETTINGS ====================
+
+model Setting {
+  id           Int      @id @default(autoincrement())
+  federationId Int?     @map("federation_id")
+  key          String   @db.VarChar(100)
+  value        String?
+  group        String?  @db.VarChar(50)
+  dataType     String   @default("string") @map("data_type") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  federation Federation? @relation(fields: [federationId], references: [id])
+
+  @@unique([federationId, key])
+  @@map("settings")
+}
+
+model CurrencyExchangeRate {
+  id           Int      @id @default(autoincrement())
+  fromCurrency String   @map("from_currency") @db.VarChar(3)
+  toCurrency   String   @map("to_currency") @db.VarChar(3)
+  rate         Decimal  @db.Decimal(10, 6)
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@unique([fromCurrency, toCurrency])
+  @@map("currency_exchange_rates")
+}
