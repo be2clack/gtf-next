@@ -8,16 +8,17 @@ const globalForPrisma = globalThis as unknown as {
 }
 
 function createPrismaClient() {
-  const databaseUrl = process.env.DATABASE_URL
+  // Use DIRECT_DATABASE_URL for direct connection to Postgres
+  const directUrl = process.env.DIRECT_DATABASE_URL
 
-  if (!databaseUrl) {
-    throw new Error('DATABASE_URL environment variable is not set')
+  if (!directUrl) {
+    throw new Error('DIRECT_DATABASE_URL environment variable is not set')
   }
 
   // Create PostgreSQL connection pool
   const pool = globalForPrisma.pool ?? new Pool({
-    connectionString: databaseUrl,
-    max: 20,
+    connectionString: directUrl,
+    max: 10,
   })
 
   if (process.env.NODE_ENV !== 'production') {

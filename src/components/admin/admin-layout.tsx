@@ -17,6 +17,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  Database,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -45,6 +46,7 @@ const navigation = [
   { name: 'Судьи', href: '/admin/judges', icon: Medal },
   { name: 'Взвешивание', href: '/admin/weighin', icon: Scale },
   { name: 'Новости', href: '/admin/news', icon: Newspaper },
+  { name: 'Миграция', href: '/admin/migration', icon: Database },
   { name: 'Настройки', href: '/admin/settings', icon: Settings },
 ]
 

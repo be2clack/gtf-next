@@ -66,7 +66,8 @@ export default async function RatingsPage({ searchParams }: RatingsPageProps) {
   }
 
   if (gender) {
-    where.gender = gender
+    // sex: 0 = male, 1 = female
+    where.sex = gender === 'MALE' ? 0 : 1
   }
 
   if (search) {

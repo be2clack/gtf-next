@@ -21,7 +21,27 @@
       "has": [
         {
           "type": "host",
-          "value": "(?<federation>[a-z]+)\\.gtf\\.app"
+          "value": "(?<federation>kg|kz|uz|ru|ae)\\.gtf-next\\.vercel\\.app"
+        }
+      ],
+      "destination": "/:path*"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<federation>kg|kz|uz|ru|ae)\\.gtf\\.global"
+        }
+      ],
+      "destination": "/:path*"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<federation>kg|kz|uz|ru|ae)\\.gtf\\.app"
         }
       ],
       "destination": "/:path*"

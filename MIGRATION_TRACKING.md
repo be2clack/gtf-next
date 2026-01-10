@@ -2,6 +2,10 @@
 
 ## Migration Status Overview
 
+**Last Updated:** 2026-01-10
+**Build Status:** Success
+**Total Routes:** 42 API endpoints, 18 pages
+
 ### Database Schema (Prisma)
 - [x] Users model
 - [x] Federation model
@@ -101,54 +105,29 @@
 - [x] GET /api/v1/geolocation/countries
 - [x] GET /api/v1/geolocation/countries/:id/regions
 - [x] GET /api/v1/geolocation/regions/:id/cities
-- [ ] GET /api/v1/competitions/:id
-- [ ] GET /api/v1/competitions/:id/categories
-- [ ] GET /api/v1/competitions/:id/schedule
-- [ ] GET /api/v1/public/:federation/brackets/:id
+- [x] GET /api/v1/competitions/:id
+- [x] GET /api/v1/competitions/:id/categories
+- [x] GET /api/v1/competitions/:id/schedule
+- [x] GET /api/v1/brackets/:categoryId
+- [x] GET /api/v1/news
+- [x] GET /api/v1/news/:id
 
 #### Protected API
 - [x] GET /api/v1/sportsmen
 - [x] GET /api/v1/sportsmen/:id
 - [x] PUT /api/v1/sportsmen/:id
-- [ ] POST /api/v1/sportsmen
-- [ ] DELETE /api/v1/sportsmen/:id
-- [ ] POST /api/v1/clubs
-- [ ] GET /api/v1/trainers
-- [ ] POST /api/v1/trainers
-- [ ] GET /api/v1/judges
-- [ ] POST /api/v1/registrations
-- [ ] POST /api/v1/memberships
-
-### Controllers (from Laravel)
-
-#### SuperAdmin Controllers
-- [ ] FederationController
-- [ ] DisciplineController
-- [ ] AgeCategoryController
-- [ ] BeltCategoryController
-- [ ] WeightCategoryController
-- [ ] CountryController
-- [ ] RegionController
-- [ ] CityController
-- [ ] JudgeController
-- [ ] CompetitionController
-
-#### Admin Controllers
-- [ ] DashboardController
-- [ ] SportsmanController
-- [ ] ClubController
-- [ ] TrainerController
-- [ ] NewsController
-- [ ] SettingsController
-- [ ] JudgeController (Admin)
-- [ ] AttestationController
-- [ ] CompetitionController (Admin)
-- [ ] CompetitionDisciplineController
-- [ ] CompetitionCategoryController
-- [ ] CompetitionRegistrationController
-- [ ] CompetitionBracketController
-- [ ] TeamController
-- [ ] WeighInController
+- [x] POST /api/v1/sportsmen
+- [x] DELETE /api/v1/sportsmen/:id
+- [x] GET /api/v1/trainers
+- [x] POST /api/v1/trainers
+- [x] GET /api/v1/judges
+- [x] POST /api/v1/judges
+- [x] GET /api/v1/registrations
+- [x] POST /api/v1/registrations
+- [x] GET /api/v1/memberships
+- [x] POST /api/v1/memberships
+- [x] PUT /api/v1/news/:id
+- [x] DELETE /api/v1/news/:id
 
 ### UI Components (shadcn/ui migration)
 - [x] Layout components (Header, Footer, AdminLayout)
@@ -157,10 +136,11 @@
 - [x] Forms (FormField component)
 - [x] Modals (Dialog component)
 - [x] Theme toggle (dark/light/system)
-- [ ] Competition bracket viewer
-- [ ] Multi-language input
-- [ ] Phone input
-- [ ] Location cascade select
+- [x] Competition bracket viewer -> components/brackets/BracketViewer.tsx
+- [x] Multi-language input -> components/forms/MultiLanguageInput.tsx
+- [x] Phone input -> components/forms/PhoneInput.tsx
+- [x] Location cascade select -> components/forms/LocationSelect.tsx
+- [x] Textarea component -> components/ui/textarea.tsx
 - [ ] Name input with transliteration
 
 ### Pages (from Laravel Views)
@@ -192,14 +172,14 @@
 #### Admin Pages
 - [x] Dashboard -> app/admin/page.tsx
 - [x] Sportsmen management -> app/admin/sportsmen/page.tsx
-- [ ] Clubs management
-- [ ] Trainers management
-- [ ] Judges management
-- [ ] Competitions management
+- [x] Clubs management -> app/admin/clubs/page.tsx
+- [x] Trainers management -> app/admin/trainers/page.tsx
+- [x] Judges management -> app/admin/judges/page.tsx
+- [x] Competitions management -> app/admin/competitions/page.tsx
+- [x] News management -> app/admin/news/page.tsx
 - [ ] Competition categories
 - [ ] Registration management
 - [ ] Bracket management
-- [ ] News management
 - [ ] Settings
 
 #### SuperAdmin Pages
@@ -217,24 +197,24 @@
 
 | Laravel File | Next.js File | Status |
 |-------------|-------------|--------|
-| app/Models/User.php | prisma/schema.prisma (User) | ✅ |
-| app/Models/Federation.php | prisma/schema.prisma (Federation) | ✅ |
-| app/Models/Sportsman.php | prisma/schema.prisma (Sportsman) | ✅ |
-| app/Models/Competition.php | prisma/schema.prisma (Competition) | ✅ |
-| ... (50+ models) | prisma/schema.prisma | ✅ |
-| app/Services/Auth/PinVerificationService.php | src/services/auth/pin.service.ts | ✅ |
-| app/Services/TelegramService.php | src/services/auth/telegram.service.ts | ✅ |
-| app/Services/SmsService.php | src/services/auth/sms.service.ts | ✅ |
-| app/Services/TransliterationService.php | src/lib/utils/transliterate.ts | ✅ |
-| app/Services/FederationService.php | src/services/federation/federation.service.ts | ✅ |
-| app/Services/TeamService.php | src/services/team/team.service.ts | ✅ |
-| app/Services/WeighInService.php | src/services/weighin/weighin.service.ts | ✅ |
-| app/Services/CompetitionCategoryGeneratorService.php | src/services/category/category-generator.service.ts | ✅ |
-| app/Services/PaymentService.php | src/services/payment/payment.service.ts | ✅ |
-| app/Services/MembershipService.php | src/services/membership/membership.service.ts | ✅ |
-| app/Services/ExportService.php | src/services/export/export.service.ts | ✅ |
-| routes/api.php (auth routes) | src/app/api/v1/auth/* | ✅ |
-| app/Http/Middleware/IdentifyFederation.php | src/middleware.ts | ✅ |
+| app/Models/User.php | prisma/schema.prisma (User) | Done |
+| app/Models/Federation.php | prisma/schema.prisma (Federation) | Done |
+| app/Models/Sportsman.php | prisma/schema.prisma (Sportsman) | Done |
+| app/Models/Competition.php | prisma/schema.prisma (Competition) | Done |
+| ... (50+ models) | prisma/schema.prisma | Done |
+| app/Services/Auth/PinVerificationService.php | src/services/auth/pin.service.ts | Done |
+| app/Services/TelegramService.php | src/services/auth/telegram.service.ts | Done |
+| app/Services/SmsService.php | src/services/auth/sms.service.ts | Done |
+| app/Services/TransliterationService.php | src/lib/utils/transliterate.ts | Done |
+| app/Services/FederationService.php | src/services/federation/federation.service.ts | Done |
+| app/Services/TeamService.php | src/services/team/team.service.ts | Done |
+| app/Services/WeighInService.php | src/services/weighin/weighin.service.ts | Done |
+| app/Services/CompetitionCategoryGeneratorService.php | src/services/category/category-generator.service.ts | Done |
+| app/Services/PaymentService.php | src/services/payment/payment.service.ts | Done |
+| app/Services/MembershipService.php | src/services/membership/membership.service.ts | Done |
+| app/Services/ExportService.php | src/services/export/export.service.ts | Done |
+| routes/api.php (auth routes) | src/app/api/v1/auth/* | Done |
+| app/Http/Middleware/IdentifyFederation.php | src/middleware.ts | Done |
 
 ---
 
@@ -254,6 +234,54 @@
 
 ---
 
+## Recent Changes (2026-01-10)
+
+### Fixed Issues
+1. Fixed `prisma.config.ts` - removed unsupported `directUrl` property
+2. Fixed `scripts/migrate-data.ts` - corrected type mappings for TrainerRank, UserType, CompetitionStatus
+3. Fixed `src/app/api/migrate/route.ts` - updated to use shared Prisma client
+4. Fixed `src/app/ratings/page.tsx` - corrected gender filter (sex field: 0=male, 1=female)
+5. Fixed `src/app/api/v1/brackets/[categoryId]/route.ts` - updated to match Prisma schema (participant1/participant2, roundNumber, score1/score2)
+6. Fixed `src/app/api/v1/memberships/route.ts` - updated to use `sportsmen` relation and correct field names
+7. Fixed `src/app/api/v1/registrations/route.ts` - updated to use correct field names and enum values
+
+### Added API Endpoints
+1. `GET /api/v1/competitions/:id` - Competition details with categories
+2. `PUT /api/v1/competitions/:id` - Update competition
+3. `DELETE /api/v1/competitions/:id` - Soft delete competition
+4. `GET /api/v1/competitions/:id/categories` - Competition categories
+5. `GET /api/v1/competitions/:id/schedule` - Competition schedule
+6. `GET /api/v1/trainers` - List trainers
+7. `POST /api/v1/trainers` - Create trainer
+8. `GET /api/v1/judges` - List judges
+9. `POST /api/v1/judges` - Create judge
+10. `GET /api/v1/registrations` - List registrations
+11. `POST /api/v1/registrations` - Create registration
+12. `GET /api/v1/memberships` - List memberships
+13. `POST /api/v1/memberships` - Create membership
+14. `GET /api/v1/brackets/:categoryId` - Get bracket for category
+15. `GET /api/v1/news` - List news
+16. `POST /api/v1/news` - Create news
+17. `GET /api/v1/news/:id` - Get news
+18. `PUT /api/v1/news/:id` - Update news
+19. `DELETE /api/v1/news/:id` - Delete news
+
+### Added Admin Pages
+1. `app/admin/clubs/page.tsx` - Clubs management
+2. `app/admin/trainers/page.tsx` - Trainers management
+3. `app/admin/judges/page.tsx` - Judges management
+4. `app/admin/competitions/page.tsx` - Competitions management
+5. `app/admin/news/page.tsx` - News management
+
+### Added UI Components
+1. `components/brackets/BracketViewer.tsx` - Competition bracket viewer
+2. `components/forms/PhoneInput.tsx` - Phone input with country code
+3. `components/forms/LocationSelect.tsx` - Cascading country/region/city select
+4. `components/forms/MultiLanguageInput.tsx` - Multi-language text input
+5. `components/ui/textarea.tsx` - Textarea component
+
+---
+
 ## Notes
 
 1. **Multi-tenancy**: Using middleware to detect federation from subdomain
@@ -261,3 +289,23 @@
 3. **Authentication**: PIN-based via Telegram/SMS (no passwords)
 4. **File uploads**: Will use Vercel Blob or similar
 5. **Real-time**: Consider adding WebSockets for live match updates
+
+---
+
+## Remaining Tasks
+
+### High Priority
+- [ ] Name input with transliteration component
+- [ ] Competition bracket view page
+- [ ] Competition schedule page
+- [ ] Cabinet pages (sportsman, trainer, judge, representative)
+
+### Medium Priority
+- [ ] Registration management admin page
+- [ ] Bracket management admin page
+- [ ] Settings admin page
+
+### Low Priority
+- [ ] PDF export (passports, certificates)
+- [ ] WebSocket for live updates
+- [ ] SuperAdmin panel
