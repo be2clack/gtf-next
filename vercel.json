@@ -31,7 +31,7 @@
       "has": [
         {
           "type": "host",
-          "value": "(?<federation>kg|kz|uz|ru|ae)\\.gtf\\.global"
+          "value": "(?<federation>kg|kz|uz|ru|ae|tj|tm)\\.gtf\\.global"
         }
       ],
       "destination": "/:path*"
@@ -41,7 +41,17 @@
       "has": [
         {
           "type": "host",
-          "value": "(?<federation>kg|kz|uz|ru|ae)\\.gtf\\.app"
+          "value": "(?<federation>kg|kz|uz|ru|ae|tj|tm)\\.gtf\\.app"
+        }
+      ],
+      "destination": "/:path*"
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "(?<federation>kg|kz|uz|ru|ae|tj|tm)\\.mix\\.kg"
         }
       ],
       "destination": "/:path*"
