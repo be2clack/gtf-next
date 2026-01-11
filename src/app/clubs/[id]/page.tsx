@@ -12,6 +12,7 @@ import {
   Instagram, Globe, Trophy, Medal
 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getClubLogoUrl, getSportsmanPhotoUrl, getTrainerPhotoUrl } from '@/lib/utils/images'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
 
@@ -219,7 +220,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
                               {index + 1}
                             </span>
                             <Avatar>
-                              <AvatarImage src={sportsman.photo || ''} />
+                              <AvatarImage src={getSportsmanPhotoUrl(sportsman.photo) || ''} />
                               <AvatarFallback>
                                 {sportsman.lastName?.[0]}{sportsman.firstName?.[0]}
                               </AvatarFallback>
@@ -280,7 +281,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
                           className="flex items-center gap-3 p-3 rounded-lg border"
                         >
                           <Avatar>
-                            <AvatarImage src={trainer.photo || ''} />
+                            <AvatarImage src={getTrainerPhotoUrl(trainer.photo) || ''} />
                             <AvatarFallback>
                               {trainer.lastName?.[0]}{trainer.firstName?.[0]}
                             </AvatarFallback>

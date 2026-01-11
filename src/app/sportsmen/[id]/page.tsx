@@ -12,6 +12,7 @@ import {
   Phone, Star, Award, Clock
 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getSportsmanPhotoUrl } from '@/lib/utils/images'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
 
@@ -123,7 +124,7 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row items-start gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={sportsman.photo || ''} alt={`${sportsman.lastName} ${sportsman.firstName}`} />
+                  <AvatarImage src={getSportsmanPhotoUrl(sportsman.photo) || ''} alt={`${sportsman.lastName} ${sportsman.firstName}`} />
                   <AvatarFallback className="text-2xl">
                     {sportsman.lastName?.[0]}{sportsman.firstName?.[0]}
                   </AvatarFallback>

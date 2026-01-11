@@ -58,12 +58,8 @@ export function Header({ user, federation, urlPrefix = '' }: HeaderProps) {
 
   const currentLocale = locales.find(l => l.code === locale)
 
-  // Get federation logo URL - fix incorrect subdomain URLs (kg.gtf.global -> gtf.global)
-  const federationLogo = federation?.logo
-    ? (federation.logo.startsWith('http')
-        ? federation.logo.replace(/https?:\/\/\w+\.gtf\.global\/uploads\//, 'https://gtf.global/uploads/federations/')
-        : `https://gtf.global/uploads/federations/${federation.logo}`)
-    : null
+  // Federation logo is already transformed by layout
+  const federationLogo = federation?.logo || null
 
   // Get federation title based on locale
   const getFederationTitle = () => {

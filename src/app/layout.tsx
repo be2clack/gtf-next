@@ -8,6 +8,7 @@ import { Footer } from '@/components/layout/footer'
 import { getCurrentUser } from '@/lib/auth'
 import { getFederationContext } from '@/lib/federation'
 import { getUrlPrefix } from '@/lib/url'
+import { getFederationLogoUrl } from '@/lib/utils/images'
 import type { Locale } from '@/types'
 import './globals.css'
 
@@ -62,7 +63,7 @@ export default async function RootLayout({
           federation={federation ? {
             code: federation.code,
             name: federation.name,
-            logo: federation.logo,
+            logo: getFederationLogoUrl(federation.logo),
             siteTitle: federation.siteTitle as Record<string, string> | null,
           } : null}
           urlPrefix={urlPrefix}
