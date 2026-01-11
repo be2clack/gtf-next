@@ -55,7 +55,7 @@ const statusIcons: Record<string, React.ReactNode> = {
   WEIGH_IN: <Users className="h-3.5 w-3.5" />,
   DRAW_PENDING: <Clock className="h-3.5 w-3.5" />,
   DRAW_COMPLETED: <CheckCircle2 className="h-3.5 w-3.5" />,
-  IN_PROGRESS: <Flame className="h-3.5 w-3.5" />,
+  ONGOING: <Flame className="h-3.5 w-3.5" />,
   COMPLETED: <CheckCircle2 className="h-3.5 w-3.5" />,
   CANCELLED: <XCircle className="h-3.5 w-3.5" />,
 }
@@ -68,7 +68,7 @@ const statusStyles: Record<string, string> = {
   WEIGH_IN: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
   DRAW_PENDING: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400',
   DRAW_COMPLETED: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
-  IN_PROGRESS: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+  ONGOING: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
   COMPLETED: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
   CANCELLED: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
 }
@@ -101,7 +101,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
     WEIGH_IN: t.statusWeighIn,
     DRAW_PENDING: t.statusDrawPending,
     DRAW_COMPLETED: t.statusDrawCompleted,
-    IN_PROGRESS: t.statusInProgress,
+    ONGOING: t.statusInProgress,
     COMPLETED: t.statusCompleted,
     CANCELLED: t.statusCancelled,
   }
@@ -181,7 +181,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
     prisma.competition.count({
       where: {
         ...where,
-        status: 'IN_PROGRESS',
+        status: 'ONGOING',
       },
     }),
   ])
@@ -350,7 +350,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
                 : null
               const photoUrl = getCompetitionPhotoUrl(competition.photo)
               const venue = getTranslation(competition.venue as Record<string, string> | null, locale as Locale)
-              const isActive = competition.status === 'IN_PROGRESS'
+              const isActive = competition.status === 'ONGOING'
               const isOpen = competition.status === 'REGISTRATION_OPEN'
 
               return (

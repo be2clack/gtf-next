@@ -1,6 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import { getCurrentUser } from '@/lib/auth'
+import { getCurrentUser, isSuperAdmin, isFederationAdmin } from '@/lib/auth'
 import { getFederationContext } from '@/lib/federation'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,7 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   User, Trophy, Calendar, Settings, Bell, FileText,
-  Users, Building2, Medal, Clock, ChevronRight
+  Users, Building2, Medal, Clock, ChevronRight, Shield, Globe, LayoutDashboard
 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
 import type { Locale } from '@/types'
@@ -29,6 +29,11 @@ export default async function CabinetPage() {
   }
 
   const { federation, locale } = await getFederationContext()
+
+  // Check admin status
+  const superAdmin = await isSuperAdmin()
+  const fedAdmin = await isFederationAdmin()
+  const isAdminUser = superAdmin || fedAdmin
 
   // Get user's federation name
   const userFederation = user.federationId
@@ -163,6 +168,234 @@ export default async function CabinetPage() {
     },
   })
 
+  // For admin users, show admin-specific interface
+  if (isAdminUser) {
+    return (
+      <div className="container py-8">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Shield className="h-6 w-6 text-primary" />
+              </div>
+              <Badge variant="secondary" className="text-sm">
+                {superAdmin ? 'Суперадмин' : 'Админ федерации'}
+              </Badge>
+            </div>
+            <h1 className="text-3xl font-bold">Панель управления</h1>
+            <p className="text-muted-foreground mt-1">
+              Добро пожаловать, {user.name}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/cabinet/settings">
+                <Settings className="mr-2 h-4 w-4" />
+                Настройки
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="relative">
+              <Link href="/cabinet/notifications">
+                <Bell className="mr-2 h-4 w-4" />
+                Уведомления
+                {unreadNotifications > 0 && (
+                  <Badge className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center">
+                    {unreadNotifications}
+                  </Badge>
+                )}
+              </Link>
+            </Button>
+          </div>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Admin Panel Button */}
+          <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 hover:border-primary/40 transition-colors">
+            <CardContent className="pt-6">
+              <Link href="/admin" className="block">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-primary text-primary-foreground">
+                    <LayoutDashboard className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Админ панель</h3>
+                    <p className="text-muted-foreground text-sm">
+                      {superAdmin ? 'Глобальное управление' : 'Управление федерацией'}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center text-sm text-primary font-medium">
+                    Перейти в админку
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </div>
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Superadmin: All Federations */}
+          {superAdmin && (
+            <Card className="border-2 border-purple-500/20 bg-gradient-to-br from-purple-500/5 to-purple-500/10 hover:border-purple-500/40 transition-colors">
+              <CardContent className="pt-6">
+                <Link href="/admin/federations" className="block">
+                  <div className="flex items-center gap-4">
+                    <div className="p-4 rounded-xl bg-purple-500 text-white">
+                      <Globe className="h-8 w-8" />
+                    </div>
+                    <div>
+                      <h3 className="text-xl font-semibold">Федерации</h3>
+                      <p className="text-muted-foreground text-sm">
+                        Все федерации системы
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-4 pt-4 border-t">
+                    <div className="flex items-center text-sm text-purple-600 dark:text-purple-400 font-medium">
+                      Управление федерациями
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </div>
+                  </div>
+                </Link>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Competitions */}
+          <Card className="hover:border-primary/30 transition-colors">
+            <CardContent className="pt-6">
+              <Link href="/admin/competitions" className="block">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-amber-500 text-white">
+                    <Trophy className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Соревнования</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Управление турнирами
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    Открыть раздел
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </div>
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Sportsmen */}
+          <Card className="hover:border-primary/30 transition-colors">
+            <CardContent className="pt-6">
+              <Link href="/admin/sportsmen" className="block">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-blue-500 text-white">
+                    <Users className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Спортсмены</h3>
+                    <p className="text-muted-foreground text-sm">
+                      База спортсменов
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    Открыть раздел
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </div>
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Clubs */}
+          <Card className="hover:border-primary/30 transition-colors">
+            <CardContent className="pt-6">
+              <Link href="/admin/clubs" className="block">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-green-500 text-white">
+                    <Building2 className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Клубы</h3>
+                    <p className="text-muted-foreground text-sm">
+                      Спортивные клубы
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    Открыть раздел
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </div>
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+
+          {/* Settings */}
+          <Card className="hover:border-primary/30 transition-colors">
+            <CardContent className="pt-6">
+              <Link href="/admin/settings" className="block">
+                <div className="flex items-center gap-4">
+                  <div className="p-4 rounded-xl bg-gray-500 text-white">
+                    <Settings className="h-8 w-8" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-semibold">Настройки</h3>
+                    <p className="text-muted-foreground text-sm">
+                      SMS, Telegram, система
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-4 pt-4 border-t">
+                  <div className="flex items-center text-sm text-muted-foreground">
+                    Открыть раздел
+                    <ChevronRight className="ml-1 h-4 w-4" />
+                  </div>
+                </div>
+              </Link>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* User info card */}
+        <Card className="mt-8">
+          <CardContent className="pt-6">
+            <div className="flex items-start gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarFallback className="text-xl">
+                  {user.name.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <h2 className="text-xl font-semibold">{user.name}</h2>
+                <p className="text-muted-foreground">{user.phone}</p>
+                <div className="flex items-center gap-2 mt-2">
+                  <Badge variant={superAdmin ? 'default' : 'secondary'}>
+                    {superAdmin ? 'Суперадмин' : 'Админ'}
+                  </Badge>
+                  {userFederation && (
+                    <Badge variant="outline">{userFederation.name}</Badge>
+                  )}
+                </div>
+              </div>
+              <Button asChild variant="ghost" size="sm">
+                <Link href="/cabinet/profile">
+                  Редактировать
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Regular user interface
   return (
     <div className="container py-8">
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">

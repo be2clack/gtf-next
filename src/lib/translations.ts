@@ -158,6 +158,18 @@ export const translations = {
     findClub: 'Найти клуб',
     registerAthlete: 'Хотите зарегистрировать спортсмена?',
     registerDescription: 'Войдите в систему для регистрации на соревнования, просмотра результатов и управления профилем спортсмена.',
+
+    // Competitions page filters
+    competitionsDescription: 'Официальные соревнования по Таеквон-До ИТФ',
+    total: 'Всего',
+    open: 'Открыта',
+    live: 'Live',
+    level: 'Уровень',
+    status: 'Статус',
+    year: 'Год',
+    viewLive: 'Смотреть',
+    noCompetitionsDescription: 'Попробуйте изменить фильтры или вернуться к полному списку',
+    resetFilters: 'Сбросить фильтры',
   },
 
   en: {
@@ -318,6 +330,18 @@ export const translations = {
     findClub: 'Find a Club',
     registerAthlete: 'Want to register an athlete?',
     registerDescription: 'Log in to register for competitions, view results, and manage your athlete profile.',
+
+    // Competitions page filters
+    competitionsDescription: 'Official Taekwon-Do ITF Competitions',
+    total: 'Total',
+    open: 'Open',
+    live: 'Live',
+    level: 'Level',
+    status: 'Status',
+    year: 'Year',
+    viewLive: 'Watch',
+    noCompetitionsDescription: 'Try changing filters or return to the full list',
+    resetFilters: 'Reset filters',
   },
 
   ky: {
@@ -478,6 +502,18 @@ export const translations = {
     findClub: 'Клуб табуу',
     registerAthlete: 'Спортчуну каттагыңыз келеби?',
     registerDescription: 'Мелдештерге катталуу, натыйжаларды көрүү жана спортчунун профилин башкаруу үчүн системага кириңиз.',
+
+    // Competitions page filters
+    competitionsDescription: 'Таеквон-До ИТФ боюнча расмий мелдештер',
+    total: 'Жалпы',
+    open: 'Ачык',
+    live: 'Live',
+    level: 'Деңгээл',
+    status: 'Статус',
+    year: 'Жыл',
+    viewLive: 'Көрүү',
+    noCompetitionsDescription: 'Чыпкаларды өзгөртүп көрүңүз же толук тизмеге кайтыңыз',
+    resetFilters: 'Чыпкаларды тазалоо',
   },
 
   kk: {
@@ -638,6 +674,18 @@ export const translations = {
     findClub: 'Клуб табу',
     registerAthlete: 'Спортшыны тіркегіңіз келе ме?',
     registerDescription: 'Жарыстарға тіркелу, нәтижелерді қарау және спортшы профилін басқару үшін жүйеге кіріңіз.',
+
+    // Competitions page filters
+    competitionsDescription: 'Таеквон-До ИТФ бойынша ресми жарыстар',
+    total: 'Барлығы',
+    open: 'Ашық',
+    live: 'Live',
+    level: 'Деңгей',
+    status: 'Мәртебе',
+    year: 'Жыл',
+    viewLive: 'Қарау',
+    noCompetitionsDescription: 'Сүзгілерді өзгертіп көріңіз немесе толық тізімге оралыңыз',
+    resetFilters: 'Сүзгілерді тазалау',
   },
 }
 
