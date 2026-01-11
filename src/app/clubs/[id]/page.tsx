@@ -231,7 +231,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
                               >
                                 {sportsman.lastName} {sportsman.firstName}
                               </Link>
-                              {sportsman.dan && sportsman.dan > 0 && (
+                              {sportsman.dan > 0 && (
                                 <Badge variant="outline" className="ml-2 text-xs">
                                   {sportsman.dan} дан
                                 </Badge>

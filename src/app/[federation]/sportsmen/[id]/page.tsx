@@ -1,25 +1,28 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
-import { getFederationContext } from '@/lib/federation'
+import Image from 'next/image'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   User, MapPin, Building2, Calendar, Trophy, Medal,
-  Phone, Star, Award, Clock
+  Star, Award, Clock
 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getSportsmanPhotoUrl } from '@/lib/utils/images'
+import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
 
-interface SportsmanPageProps {
-  params: Promise<{ id: string }>
+const VALID_FEDERATION_CODES = ['kg', 'kz', 'uz', 'ru', 'ae', 'tj', 'tm']
+
+interface PageProps {
+  params: Promise<{ federation: string; id: string }>
 }
 
-export async function generateMetadata({ params }: SportsmanPageProps): Promise<Metadata> {
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { id } = await params
   const sportsman = await prisma.sportsman.findUnique({
     where: { id: parseInt(id) },
@@ -34,23 +37,16 @@ export async function generateMetadata({ params }: SportsmanPageProps): Promise<
   }
 }
 
-const beltColors: Record<string, string> = {
-  WHITE: 'bg-white border',
-  YELLOW: 'bg-yellow-400',
-  GREEN: 'bg-green-500',
-  BLUE: 'bg-blue-500',
-  RED: 'bg-red-500',
-  BLACK: 'bg-black',
-}
+export default async function FederationSportsmanPage({ params }: PageProps) {
+  const { federation: federationCode, id } = await params
 
-const genderLabels: Record<string, string> = {
-  MALE: 'Мужской',
-  FEMALE: 'Женский',
-}
+  if (!VALID_FEDERATION_CODES.includes(federationCode)) {
+    notFound()
+  }
 
-export default async function SportsmanPage({ params }: SportsmanPageProps) {
-  const { id } = await params
-  const { locale } = await getFederationContext()
+  const headersList = await headers()
+  const locale = headersList.get('x-locale') || 'ru'
+  const baseUrl = `/${federationCode}`
 
   const sportsman = await prisma.sportsman.findUnique({
     where: { id: parseInt(id) },
@@ -89,6 +85,11 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
     notFound()
   }
 
+  // Verify sportsman belongs to federation
+  if (sportsman.federation?.code !== federationCode) {
+    notFound()
+  }
+
   const clubTitle = sportsman.club
     ? getTranslation(sportsman.club.title as Record<string, string>, locale as Locale)
     : null
@@ -104,13 +105,15 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
     ? Math.floor((Date.now() - new Date(sportsman.dateOfBirth).getTime()) / (365.25 * 24 * 60 * 60 * 1000))
     : null
 
+  const photoUrl = getSportsmanPhotoUrl(sportsman.photo)
+
   return (
     <div className="container py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link href="/" className="hover:text-foreground">Главная</Link>
+        <Link href={baseUrl} className="hover:text-foreground">Главная</Link>
         <span>/</span>
-        <Link href="/ratings" className="hover:text-foreground">Рейтинг</Link>
+        <Link href={`${baseUrl}/ratings`} className="hover:text-foreground">Рейтинг</Link>
         <span>/</span>
         <span className="text-foreground">{sportsman.lastName} {sportsman.firstName}</span>
       </nav>
@@ -123,7 +126,7 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row items-start gap-6">
                 <Avatar className="h-24 w-24">
-                  <AvatarImage src={sportsman.photo || ''} alt={`${sportsman.lastName} ${sportsman.firstName}`} />
+                  <AvatarImage src={photoUrl || ''} alt={`${sportsman.lastName} ${sportsman.firstName}`} />
                   <AvatarFallback className="text-2xl">
                     {sportsman.lastName?.[0]}{sportsman.firstName?.[0]}
                   </AvatarFallback>
@@ -141,9 +144,6 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
                     {sportsman.gyp > 0 && sportsman.gyp < 10 && (
                       <Badge variant="outline">{sportsman.gyp} гуп</Badge>
                     )}
-                    {sportsman.beltLevel && sportsman.beltLevel > 0 && (
-                      <Badge variant="secondary">Уровень: {sportsman.beltLevel}</Badge>
-                    )}
                   </div>
 
                   <div className="grid sm:grid-cols-2 gap-3 mt-4 text-sm">
@@ -156,15 +156,15 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
                     {clubTitle && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Building2 className="h-4 w-4" />
-                        <Link href={`/clubs/${sportsman.club?.id}`} className="hover:text-foreground">
+                        <Link href={`${baseUrl}/clubs/${sportsman.club?.id}`} className="hover:text-foreground">
                           {clubTitle}
                         </Link>
                       </div>
                     )}
-                    {sportsman.dateOfBirth && (
+                    {sportsman.dateOfBirth && age && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        {age} лет ({new Date(sportsman.dateOfBirth).toLocaleDateString(locale)})
+                        {age} лет
                       </div>
                     )}
                     {sportsman.sex !== null && sportsman.sex !== undefined && (
@@ -239,7 +239,7 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
                           >
                             <div>
                               <Link
-                                href={`/competitions/${reg.competition.id}`}
+                                href={`${baseUrl}/competitions/${reg.competition.id}`}
                                 className="font-medium hover:underline"
                               >
                                 {compTitle}
@@ -313,12 +313,9 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
                 <CardTitle>Тренер</CardTitle>
               </CardHeader>
               <CardContent>
-                <Link
-                  href={`/trainers/${sportsman.trainer.id}`}
-                  className="font-medium hover:underline"
-                >
+                <span className="font-medium">
                   {sportsman.trainer.lastName} {sportsman.trainer.firstName}
-                </Link>
+                </span>
               </CardContent>
             </Card>
           )}
@@ -331,7 +328,7 @@ export default async function SportsmanPage({ params }: SportsmanPageProps) {
               </CardHeader>
               <CardContent>
                 <Link
-                  href={`/clubs/${sportsman.club.id}`}
+                  href={`${baseUrl}/clubs/${sportsman.club.id}`}
                   className="font-medium hover:underline"
                 >
                   {clubTitle}

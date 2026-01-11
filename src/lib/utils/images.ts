@@ -61,10 +61,14 @@ export function getTrainerPhotoUrl(photo: string | null | undefined): string | n
 
 /**
  * Get the full URL for a club logo
+ * Fixes incorrect subdomain URLs stored in database (kg.gtf.global -> gtf.global)
  */
 export function getClubLogoUrl(logo: string | null | undefined): string | null {
   if (!logo) return null
-  if (logo.startsWith('http')) return logo
+  if (logo.startsWith('http')) {
+    // Fix incorrect subdomain URLs (kg.gtf.global -> gtf.global)
+    return logo.replace(/https?:\/\/\w+\.gtf\.global\/uploads\//, `${PRODUCTION_URL}/uploads/club/`)
+  }
   if (logo.includes('/')) return `${PRODUCTION_URL}/${logo}`
   return `${PRODUCTION_URL}/uploads/club/${logo}`
 }

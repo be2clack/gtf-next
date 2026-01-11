@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, Newspaper } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getNewsPhotoUrl } from '@/lib/utils/images'
 import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -137,10 +138,10 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
 
             return (
               <Card key={item.id} className="flex flex-col overflow-hidden">
-                {item.photo && (
+                {getNewsPhotoUrl(item.photo) && (
                   <div className="relative aspect-video">
                     <Image
-                      src={item.photo}
+                      src={getNewsPhotoUrl(item.photo)!}
                       alt={title || 'News image'}
                       fill
                       className="object-cover"

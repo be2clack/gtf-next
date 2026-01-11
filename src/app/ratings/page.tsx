@@ -71,6 +71,34 @@ export default async function RatingsPage({ searchParams }: RatingsPageProps) {
     where.sex = gender === 'MALE' ? 0 : 1
   }
 
+  // Age group filter - calculate date ranges
+  if (ageGroup) {
+    const now = new Date()
+    const currentYear = now.getFullYear()
+
+    // Age ranges for each group
+    const ageRanges: Record<string, { min: number; max: number }> = {
+      CHILDREN: { min: 6, max: 11 },
+      CADETS: { min: 12, max: 14 },
+      JUNIORS: { min: 15, max: 17 },
+      ADULTS: { min: 18, max: 39 },
+      VETERANS: { min: 40, max: 100 },
+    }
+
+    const range = ageRanges[ageGroup]
+    if (range) {
+      // Born before this date = older than min age
+      const maxBirthDate = new Date(currentYear - range.min, now.getMonth(), now.getDate())
+      // Born after this date = younger than max age
+      const minBirthDate = new Date(currentYear - range.max - 1, now.getMonth(), now.getDate())
+
+      where.dateOfBirth = {
+        gte: minBirthDate,
+        lte: maxBirthDate,
+      }
+    }
+  }
+
   if (search) {
     where.OR = [
       { lastName: { contains: search, mode: 'insensitive' } },
@@ -225,7 +253,7 @@ export default async function RatingsPage({ searchParams }: RatingsPageProps) {
                           >
                             {sportsman.lastName} {sportsman.firstName}
                           </Link>
-                          {sportsman.dan && sportsman.dan > 0 && (
+                          {sportsman.dan > 0 && (
                             <span className="ml-2 text-xs text-muted-foreground">
                               {sportsman.dan} дан
                             </span>
