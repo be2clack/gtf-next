@@ -183,7 +183,8 @@ export default async function HomePage() {
 
   const heroBackground = getHeroBackgroundUrl(federation?.heroBackground)
   const federationLogo = getFederationLogoUrl(federation?.logo)
-  const globalLogo = !federation ? '/logo.png' : null
+  // Always show GTF logo
+  const globalLogo = '/logo.png'
 
   // Different stats for global vs federation pages
   const stats = !federation ? [
@@ -217,24 +218,24 @@ export default async function HomePage() {
         <div className="relative z-10 container mx-auto px-4 text-center text-white py-20">
           {/* Logos */}
           <div className="flex justify-center items-center gap-6 mb-8">
-            {globalLogo && (
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-2xl bg-white/10 backdrop-blur">
-                <Image
-                  src={globalLogo}
-                  alt="GTF"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+            {/* GTF Logo */}
+            <div className="w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden shadow-2xl bg-white/10 backdrop-blur-sm">
+              <Image
+                src={globalLogo}
+                alt="GTF"
+                width={112}
+                height={112}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Federation Logo */}
             {federationLogo && (
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-2xl">
+              <div className="w-20 h-20 md:w-28 md:h-28 rounded-full overflow-hidden shadow-2xl bg-white/10 backdrop-blur-sm">
                 <Image
                   src={federationLogo}
                   alt={federation?.name || 'Federation'}
-                  width={128}
-                  height={128}
+                  width={112}
+                  height={112}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -357,10 +358,10 @@ export default async function HomePage() {
 
                     {/* Visit Button */}
                     <Button asChild className="w-full" variant="outline">
-                      <Link href={`/${fed.code}`}>
+                      <a href={`https://${fed.code}.mix.kg`}>
                         {t.visitSite}
                         <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
+                      </a>
                     </Button>
                   </CardContent>
                 </Card>
