@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import {
@@ -31,28 +32,53 @@ interface HeaderProps {
     code: string
     name: string
     logo?: string | null
+    siteTitle?: Record<string, string> | null
   } | null
+  urlPrefix?: string
   locale?: string
 }
 
-export function Header({ user, federation }: HeaderProps) {
+export function Header({ user, federation, urlPrefix = '' }: HeaderProps) {
   const pathname = usePathname()
   const { t, locale, setLocale, locales } = useI18n()
 
+  // Build navigation with proper URL prefix
   const navigation = [
-    { name: t('nav.home'), href: '/', icon: null },
-    { name: t('nav.competitions'), href: '/competitions', icon: Trophy },
-    { name: t('nav.ratings'), href: '/ratings', icon: null },
-    { name: t('nav.clubs'), href: '/clubs', icon: Building2 },
-    { name: t('nav.news'), href: '/news', icon: null },
+    { name: t('nav.home'), href: urlPrefix || '/', icon: null },
+    { name: t('nav.competitions'), href: `${urlPrefix}/competitions`, icon: Trophy },
+    { name: t('nav.ratings'), href: `${urlPrefix}/ratings`, icon: null },
+    { name: t('nav.clubs'), href: `${urlPrefix}/clubs`, icon: Building2 },
+    { name: t('nav.news'), href: `${urlPrefix}/news`, icon: null },
   ]
 
   const handleLogout = async () => {
     await fetch('/api/v1/auth/logout', { method: 'POST' })
-    window.location.href = '/'
+    window.location.href = urlPrefix || '/'
   }
 
   const currentLocale = locales.find(l => l.code === locale)
+
+  // Get federation logo URL
+  const federationLogo = federation?.logo
+    ? (federation.logo.startsWith('http')
+        ? federation.logo
+        : `https://gtf.global/uploads/federations/${federation.logo}`)
+    : null
+
+  // Get federation title based on locale
+  const getFederationTitle = () => {
+    if (!federation) return null
+
+    if (federation.siteTitle) {
+      // Try locale-specific title
+      const localeKey = locale === 'kg' ? 'ky' : locale === 'kz' ? 'kk' : locale
+      return federation.siteTitle[localeKey] || federation.siteTitle['ru'] || federation.name
+    }
+
+    return federation.name
+  }
+
+  const federationTitle = getFederationTitle()
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -65,14 +91,33 @@ export function Header({ user, federation }: HeaderProps) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-72">
-            <nav className="flex flex-col space-y-4 mt-8">
+            {/* Mobile Logo Section */}
+            <div className="flex items-center gap-3 mb-6 pb-4 border-b">
+              <Image
+                src="/logo.png"
+                alt="GTF"
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+              {federationLogo && (
+                <Image
+                  src={federationLogo}
+                  alt={federation?.name || 'Federation'}
+                  width={40}
+                  height={40}
+                  className="rounded-full"
+                />
+              )}
+            </div>
+            <nav className="flex flex-col space-y-4">
               {navigation.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
                   className={cn(
                     'flex items-center gap-2 text-sm font-medium transition-colors hover:text-primary',
-                    pathname === item.href
+                    pathname === item.href || pathname.startsWith(item.href + '/')
                       ? 'text-primary'
                       : 'text-muted-foreground'
                   )}
@@ -85,19 +130,37 @@ export function Header({ user, federation }: HeaderProps) {
           </SheetContent>
         </Sheet>
 
-        {/* Logo */}
-        <Link href="/" className="flex items-center space-x-2 mr-6">
-          {federation?.logo ? (
-            <img
-              src={federation.logo.startsWith('http') ? federation.logo : `https://gtf.global/uploads/federations/${federation.logo}`}
-              alt={federation.name}
-              className="h-8 w-auto"
+        {/* Logo Section */}
+        <Link href={urlPrefix || '/'} className="flex items-center gap-3 mr-6">
+          {/* GTF Global Logo */}
+          <Image
+            src="/logo.png"
+            alt="GTF"
+            width={36}
+            height={36}
+            className="rounded-full"
+          />
+
+          {/* Federation Logo (if exists) */}
+          {federationLogo && (
+            <Image
+              src={federationLogo}
+              alt={federation?.name || 'Federation'}
+              width={36}
+              height={36}
+              className="rounded-full"
             />
-          ) : (
-            <span className="font-bold text-xl">
-              {federation?.code?.toUpperCase() || 'GTF'}
-            </span>
           )}
+
+          {/* Title */}
+          <div className="hidden sm:flex flex-col">
+            <span className="text-xs text-muted-foreground leading-tight">
+              Taekwon-Do Federation
+            </span>
+            <span className="font-semibold leading-tight">
+              {federationTitle || 'GTF Global'}
+            </span>
+          </div>
         </Link>
 
         {/* Desktop navigation */}
@@ -108,7 +171,7 @@ export function Header({ user, federation }: HeaderProps) {
               href={item.href}
               className={cn(
                 'text-sm font-medium transition-colors hover:text-primary',
-                pathname === item.href
+                pathname === item.href || (item.href !== (urlPrefix || '/') && pathname.startsWith(item.href))
                   ? 'text-primary'
                   : 'text-muted-foreground'
               )}
@@ -173,7 +236,7 @@ export function Header({ user, federation }: HeaderProps) {
                 </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem asChild>
-                  <Link href="/cabinet">
+                  <Link href={`${urlPrefix}/cabinet`}>
                     <User className="mr-2 h-4 w-4" />
                     {t('nav.cabinet')}
                   </Link>
@@ -195,7 +258,7 @@ export function Header({ user, federation }: HeaderProps) {
             </DropdownMenu>
           ) : (
             <Button asChild size="sm">
-              <Link href="/login">{t('nav.login')}</Link>
+              <Link href={`${urlPrefix}/login`}>{t('nav.login')}</Link>
             </Button>
           )}
         </div>

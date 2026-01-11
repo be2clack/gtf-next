@@ -7,6 +7,7 @@ import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { getCurrentUser } from '@/lib/auth'
 import { getFederationContext } from '@/lib/federation'
+import { getUrlPrefix } from '@/lib/url'
 import type { Locale } from '@/types'
 import './globals.css'
 
@@ -35,9 +36,10 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const [user, { federation, locale }] = await Promise.all([
+  const [user, { federation, locale }, urlPrefix] = await Promise.all([
     getCurrentUser(),
     getFederationContext(),
+    getUrlPrefix(),
   ])
 
   return (
@@ -61,7 +63,9 @@ export default async function RootLayout({
             code: federation.code,
             name: federation.name,
             logo: federation.logo,
+            siteTitle: federation.siteTitle as Record<string, string> | null,
           } : null}
+          urlPrefix={urlPrefix}
           locale={locale}
         />
         <main className="flex-1">
