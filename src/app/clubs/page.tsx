@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { getFederationContext } from '@/lib/federation'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,6 +8,8 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Building2, Users, MapPin, Star, Search } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getClubLogoUrl } from '@/lib/utils/images'
+import { getT } from '@/lib/translations'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
 
@@ -50,11 +53,18 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
     ]
   }
 
+  const t = getT(locale || 'ru')
+
   // Get clubs
   const [clubs, total, regions] = await Promise.all([
     prisma.club.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        logo: true,
+        rating: true,
         federation: { select: { code: true, name: true } },
         country: { select: { nameRu: true, nameEn: true, flagEmoji: true } },
         region: { select: { id: true, nameRu: true, nameEn: true } },
@@ -85,9 +95,9 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Клубы</h1>
+          <h1 className="text-3xl font-bold">{t.clubs}</h1>
           <p className="text-muted-foreground mt-1">
-            {total} {total === 1 ? 'клуб' : total < 5 ? 'клуба' : 'клубов'}
+            {total} {t.clubs.toLowerCase()}
           </p>
         </div>
       </div>
@@ -96,7 +106,7 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
       <div className="flex flex-wrap gap-2 mb-6">
         <Link href="/clubs">
           <Badge variant={!regionId ? 'default' : 'outline'} className="cursor-pointer">
-            Все регионы
+            {t.all}
           </Badge>
         </Link>
         {regions.slice(0, 10).map((region) => (
@@ -118,7 +128,7 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
           <Input
             type="search"
             name="search"
-            placeholder="Поиск клубов..."
+            placeholder={`${t.search}...`}
             defaultValue={search}
             className="pl-10"
           />
@@ -137,11 +147,25 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
               ? (locale === 'en' ? club.region.nameEn : club.region.nameRu)
               : null
 
+            const logoUrl = getClubLogoUrl(club.logo)
+
             return (
               <Card key={club.id} className="flex flex-col">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
-                    <Building2 className="h-8 w-8 text-primary" />
+                    {logoUrl ? (
+                      <div className="relative w-12 h-12 rounded-lg overflow-hidden bg-muted">
+                        <Image
+                          src={logoUrl}
+                          alt={title || ''}
+                          fill
+                          className="object-contain"
+                          unoptimized
+                        />
+                      </div>
+                    ) : (
+                      <Building2 className="h-8 w-8 text-primary" />
+                    )}
                     {club.rating > 0 && (
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
@@ -166,12 +190,12 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      {club._count.sportsmen} спортсменов
+                      {club._count.sportsmen} {t.athletes.toLowerCase()}
                     </div>
                   </div>
                   <Button asChild className="w-full">
                     <Link href={`/clubs/${club.id}`}>
-                      Подробнее
+                      {t.viewDetails}
                     </Link>
                   </Button>
                 </CardContent>
@@ -183,7 +207,7 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
         <Card>
           <CardContent className="py-12 text-center">
             <Building2 className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Клубы не найдены</p>
+            <p className="text-muted-foreground">{t.clubsNotFound}</p>
           </CardContent>
         </Card>
       )}
@@ -194,7 +218,7 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
           {page > 1 && (
             <Button asChild variant="outline">
               <Link href={`/clubs?page=${page - 1}${regionId ? `&regionId=${regionId}` : ''}${search ? `&search=${search}` : ''}`}>
-                Назад
+                {t.back}
               </Link>
             </Button>
           )}
@@ -204,7 +228,7 @@ export default async function ClubsPage({ searchParams }: ClubsPageProps) {
           {page < totalPages && (
             <Button asChild variant="outline">
               <Link href={`/clubs?page=${page + 1}${regionId ? `&regionId=${regionId}` : ''}${search ? `&search=${search}` : ''}`}>
-                Вперёд
+                {t.forward}
               </Link>
             </Button>
           )}

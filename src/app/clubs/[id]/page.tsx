@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { getFederationContext } from '@/lib/federation'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,6 +14,7 @@ import {
 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
 import { getClubLogoUrl, getSportsmanPhotoUrl, getTrainerPhotoUrl } from '@/lib/utils/images'
+import { getT } from '@/lib/translations'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
 
@@ -39,10 +41,18 @@ export async function generateMetadata({ params }: ClubPageProps): Promise<Metad
 export default async function ClubPage({ params }: ClubPageProps) {
   const { id } = await params
   const { locale } = await getFederationContext()
+  const t = getT(locale || 'ru')
 
   const club = await prisma.club.findUnique({
     where: { id: parseInt(id) },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      address: true,
+      logo: true,
+      instagram: true,
+      rating: true,
       federation: { select: { code: true, name: true } },
       country: { select: { nameRu: true, nameEn: true, flagEmoji: true } },
       region: { select: { nameRu: true, nameEn: true } },
@@ -107,13 +117,15 @@ export default async function ClubPage({ params }: ClubPageProps) {
 
   const totalRating = club.sportsmen.reduce((acc, s) => acc + (s.rating || 0), 0)
 
+  const logoUrl = getClubLogoUrl(club.logo)
+
   return (
     <div className="container py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link href="/" className="hover:text-foreground">Главная</Link>
+        <Link href="/" className="hover:text-foreground">{t.home}</Link>
         <span>/</span>
-        <Link href="/clubs" className="hover:text-foreground">Клубы</Link>
+        <Link href="/clubs" className="hover:text-foreground">{t.clubs}</Link>
         <span>/</span>
         <span className="text-foreground">{title}</span>
       </nav>
@@ -125,9 +137,21 @@ export default async function ClubPage({ params }: ClubPageProps) {
           <Card>
             <CardContent className="pt-6">
               <div className="flex flex-col sm:flex-row items-start gap-6">
-                <div className="w-20 h-20 rounded-lg bg-primary/10 flex items-center justify-center">
-                  <Building2 className="h-10 w-10 text-primary" />
-                </div>
+                {logoUrl ? (
+                  <div className="relative w-20 h-20 rounded-lg overflow-hidden bg-muted flex-shrink-0">
+                    <Image
+                      src={logoUrl}
+                      alt={title || ''}
+                      fill
+                      className="object-contain"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="w-20 h-20 rounded-lg bg-primary/10 flex items-center justify-center flex-shrink-0">
+                    <Building2 className="h-10 w-10 text-primary" />
+                  </div>
+                )}
                 <div className="flex-1">
                   <div className="flex items-center gap-3">
                     <h1 className="text-2xl md:text-3xl font-bold">{title}</h1>
@@ -166,28 +190,28 @@ export default async function ClubPage({ params }: ClubPageProps) {
               <CardContent className="pt-6 text-center">
                 <Users className="h-8 w-8 mx-auto text-primary mb-2" />
                 <p className="text-2xl font-bold">{club._count.sportsmen}</p>
-                <p className="text-sm text-muted-foreground">Спортсменов</p>
+                <p className="text-sm text-muted-foreground">{t.athletes}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <Medal className="h-8 w-8 mx-auto text-yellow-500 mb-2" />
                 <p className="text-2xl font-bold">{totalMedals.gold}</p>
-                <p className="text-sm text-muted-foreground">Золотых</p>
+                <p className="text-sm text-muted-foreground">{t.goldMedals}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <Medal className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                 <p className="text-2xl font-bold">{totalMedals.silver}</p>
-                <p className="text-sm text-muted-foreground">Серебряных</p>
+                <p className="text-sm text-muted-foreground">{t.silverMedals}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <Medal className="h-8 w-8 mx-auto text-orange-500 mb-2" />
                 <p className="text-2xl font-bold">{totalMedals.bronze}</p>
-                <p className="text-sm text-muted-foreground">Бронзовых</p>
+                <p className="text-sm text-muted-foreground">{t.bronzeMedals}</p>
               </CardContent>
             </Card>
           </div>
@@ -195,16 +219,16 @@ export default async function ClubPage({ params }: ClubPageProps) {
           {/* Tabs */}
           <Tabs defaultValue="sportsmen" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="sportsmen">Спортсмены</TabsTrigger>
-              <TabsTrigger value="trainers">Тренеры</TabsTrigger>
+              <TabsTrigger value="sportsmen">{t.athletes}</TabsTrigger>
+              <TabsTrigger value="trainers">{t.trainers}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="sportsmen">
               <Card>
                 <CardHeader>
-                  <CardTitle>Спортсмены клуба</CardTitle>
+                  <CardTitle>{t.clubAthletes}</CardTitle>
                   <CardDescription>
-                    Топ {Math.min(20, club.sportsmen.length)} по рейтингу
+                    {t.topByRating} ({Math.min(20, club.sportsmen.length)})
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -260,7 +284,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-6">
-                      В клубе пока нет спортсменов
+                      {t.noAthletesInClub}
                     </p>
                   )}
                 </CardContent>
@@ -270,7 +294,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
             <TabsContent value="trainers">
               <Card>
                 <CardHeader>
-                  <CardTitle>Тренерский состав</CardTitle>
+                  <CardTitle>{t.coachingStaff}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {club.trainers.length > 0 ? (
@@ -304,7 +328,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-6">
-                      Информация о тренерах отсутствует
+                      {t.noTrainersInfo}
                     </p>
                   )}
                 </CardContent>
@@ -318,7 +342,7 @@ export default async function ClubPage({ params }: ClubPageProps) {
           {/* Contact Info */}
           <Card>
             <CardHeader>
-              <CardTitle>Контакты</CardTitle>
+              <CardTitle>{t.contacts}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {address && (
@@ -346,23 +370,23 @@ export default async function ClubPage({ params }: ClubPageProps) {
           {/* Summary Stats */}
           <Card>
             <CardHeader>
-              <CardTitle>Статистика</CardTitle>
+              <CardTitle>{t.statistics}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Спортсменов</span>
+                <span className="text-muted-foreground">{t.athletes}</span>
                 <span className="font-medium">{club._count.sportsmen}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Тренеров</span>
+                <span className="text-muted-foreground">{t.trainers}</span>
                 <span className="font-medium">{club._count.trainers}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Общий рейтинг</span>
+                <span className="text-muted-foreground">{t.totalRating}</span>
                 <span className="font-medium">{totalRating}</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Всего медалей</span>
+                <span className="text-muted-foreground">{t.totalMedals}</span>
                 <span className="font-medium">
                   {totalMedals.gold + totalMedals.silver + totalMedals.bronze}
                 </span>

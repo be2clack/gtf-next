@@ -1,10 +1,18 @@
 /**
  * Image URL utilities for GTF
- * Handles both local and production image paths
+ * Handles both local, production and Vercel Blob image paths
  * Fixes subdomain URLs (kg.gtf.global -> gtf.global)
+ * Supports Vercel Blob URLs (https://blob.vercel-storage.com/...)
  */
 
 const PRODUCTION_URL = 'https://gtf.global'
+
+/**
+ * Check if URL is already a Vercel Blob URL
+ */
+function isBlobUrl(url: string): boolean {
+  return url.startsWith('https://') && url.includes('blob.vercel-storage.com')
+}
 
 /**
  * Fix subdomain URLs - kg.gtf.global, kz.gtf.global, etc. -> gtf.global
@@ -38,6 +46,7 @@ function fixTrainerUrl(url: string): string {
  */
 export function getFederationLogoUrl(logo: string | null | undefined): string | null {
   if (!logo) return null
+  if (isBlobUrl(logo)) return logo
   if (logo.startsWith('http')) return fixSubdomainUrl(logo)
   return `${PRODUCTION_URL}/uploads/federations/${logo}`
 }
@@ -47,6 +56,7 @@ export function getFederationLogoUrl(logo: string | null | undefined): string | 
  */
 export function getCompetitionPhotoUrl(photo: string | null | undefined): string | null {
   if (!photo) return null
+  if (isBlobUrl(photo)) return photo
   if (photo.startsWith('http')) return fixSubdomainUrl(photo)
   if (photo.includes('/')) return `${PRODUCTION_URL}/${photo}`
   return `${PRODUCTION_URL}/storage/competitions/${photo}`
@@ -57,6 +67,7 @@ export function getCompetitionPhotoUrl(photo: string | null | undefined): string
  */
 export function getNewsPhotoUrl(photo: string | null | undefined): string | null {
   if (!photo) return null
+  if (isBlobUrl(photo)) return photo
   if (photo.startsWith('http')) return fixSubdomainUrl(photo)
   if (photo.includes('/')) return `${PRODUCTION_URL}/${photo}`
   return `${PRODUCTION_URL}/uploads/news/${photo}`
@@ -67,6 +78,7 @@ export function getNewsPhotoUrl(photo: string | null | undefined): string | null
  */
 export function getSportsmanPhotoUrl(photo: string | null | undefined): string | null {
   if (!photo) return null
+  if (isBlobUrl(photo)) return photo
   if (photo.startsWith('http')) return fixSportsmanUrl(photo)
   if (photo.includes('/')) return `${PRODUCTION_URL}/${photo}`
   return `${PRODUCTION_URL}/uploads/sportsman/${photo}`
@@ -77,6 +89,7 @@ export function getSportsmanPhotoUrl(photo: string | null | undefined): string |
  */
 export function getTrainerPhotoUrl(photo: string | null | undefined): string | null {
   if (!photo) return null
+  if (isBlobUrl(photo)) return photo
   if (photo.startsWith('http')) return fixTrainerUrl(photo)
   if (photo.includes('/')) return `${PRODUCTION_URL}/${photo}`
   return `${PRODUCTION_URL}/uploads/trainer/${photo}`
@@ -88,6 +101,7 @@ export function getTrainerPhotoUrl(photo: string | null | undefined): string | n
  */
 export function getClubLogoUrl(logo: string | null | undefined): string | null {
   if (!logo) return null
+  if (isBlobUrl(logo)) return logo
   if (logo.startsWith('http')) return fixSubdomainUrl(logo)
   if (logo.includes('/')) return `${PRODUCTION_URL}/${logo}`
   return `${PRODUCTION_URL}/uploads/club/${logo}`
@@ -98,6 +112,7 @@ export function getClubLogoUrl(logo: string | null | undefined): string | null {
  */
 export function getJudgePhotoUrl(photo: string | null | undefined): string | null {
   if (!photo) return null
+  if (isBlobUrl(photo)) return photo
   if (photo.startsWith('http')) return fixSubdomainUrl(photo)
   if (photo.includes('/')) return `${PRODUCTION_URL}/${photo}`
   return `${PRODUCTION_URL}/storage/judges/${photo}`
@@ -109,6 +124,7 @@ export function getJudgePhotoUrl(photo: string | null | undefined): string | nul
 export function getHeroBackgroundUrl(background: string | null | undefined): string {
   const defaultBg = 'https://images.unsplash.com/photo-1555597408-26bc8e548a46?w=1920&q=80'
   if (!background) return defaultBg
+  if (isBlobUrl(background)) return background
   if (background.startsWith('http')) return fixSubdomainUrl(background)
   if (background.includes('/')) return `${PRODUCTION_URL}/${background}`
   return `${PRODUCTION_URL}/uploads/federations/${background}`
@@ -119,6 +135,7 @@ export function getHeroBackgroundUrl(background: string | null | undefined): str
  */
 export function getSiteLogoUrl(logo: string | null | undefined): string | null {
   if (!logo) return '/logo.png'
+  if (isBlobUrl(logo)) return logo
   if (logo.startsWith('http')) return fixSubdomainUrl(logo)
   if (logo.includes('/')) return `${PRODUCTION_URL}/${logo}`
   return `${PRODUCTION_URL}/uploads/settings/${logo}`
