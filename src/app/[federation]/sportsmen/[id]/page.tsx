@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
 import { getSportsmanPhotoUrl } from '@/lib/utils/images'
+import { getT } from '@/lib/translations'
 import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -46,7 +47,9 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
 
   const headersList = await headers()
   const locale = headersList.get('x-locale') || 'ru'
-  const baseUrl = `/${federationCode}`
+  const isSubdomain = headersList.get('x-is-subdomain') === 'true'
+  const t = getT(locale)
+  const urlPrefix = isSubdomain ? '' : `/${federationCode}`
 
   const sportsman = await prisma.sportsman.findUnique({
     where: { id: parseInt(id) },
@@ -111,9 +114,9 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
     <div className="container py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link href={baseUrl} className="hover:text-foreground">Главная</Link>
+        <Link href={urlPrefix || '/'} className="hover:text-foreground">{t.home}</Link>
         <span>/</span>
-        <Link href={`${baseUrl}/ratings`} className="hover:text-foreground">Рейтинг</Link>
+        <Link href={`${urlPrefix}/ratings`} className="hover:text-foreground">{t.ratings}</Link>
         <span>/</span>
         <span className="text-foreground">{sportsman.lastName} {sportsman.firstName}</span>
       </nav>
@@ -139,10 +142,10 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
 
                   <div className="flex flex-wrap items-center gap-2 mt-2">
                     {sportsman.dan > 0 && (
-                      <Badge variant="default">{sportsman.dan} дан</Badge>
+                      <Badge variant="default">{sportsman.dan} {t.dan}</Badge>
                     )}
                     {sportsman.gyp > 0 && sportsman.gyp < 10 && (
-                      <Badge variant="outline">{sportsman.gyp} гуп</Badge>
+                      <Badge variant="outline">{sportsman.gyp} {t.gup}</Badge>
                     )}
                   </div>
 
@@ -156,7 +159,7 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
                     {clubTitle && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Building2 className="h-4 w-4" />
-                        <Link href={`${baseUrl}/clubs/${sportsman.club?.id}`} className="hover:text-foreground">
+                        <Link href={`${urlPrefix}/clubs/${sportsman.club?.id}`} className="hover:text-foreground">
                           {clubTitle}
                         </Link>
                       </div>
@@ -164,13 +167,13 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
                     {sportsman.dateOfBirth && age && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <Calendar className="h-4 w-4" />
-                        {age} лет
+                        {age} {t.years}
                       </div>
                     )}
                     {sportsman.sex !== null && sportsman.sex !== undefined && (
                       <div className="flex items-center gap-2 text-muted-foreground">
                         <User className="h-4 w-4" />
-                        {sportsman.sex === 1 ? 'Женский' : 'Мужской'}
+                        {sportsman.sex === 1 ? t.female : t.male}
                       </div>
                     )}
                   </div>
@@ -185,28 +188,28 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
               <CardContent className="pt-6 text-center">
                 <Trophy className="h-8 w-8 mx-auto text-primary mb-2" />
                 <p className="text-2xl font-bold">{sportsman.rating || 0}</p>
-                <p className="text-sm text-muted-foreground">Рейтинг</p>
+                <p className="text-sm text-muted-foreground">{t.rating}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <Medal className="h-8 w-8 mx-auto text-yellow-500 mb-2" />
                 <p className="text-2xl font-bold">{sportsman.goldMedals || 0}</p>
-                <p className="text-sm text-muted-foreground">Золото</p>
+                <p className="text-sm text-muted-foreground">{t.gold}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <Medal className="h-8 w-8 mx-auto text-gray-400 mb-2" />
                 <p className="text-2xl font-bold">{sportsman.silverMedals || 0}</p>
-                <p className="text-sm text-muted-foreground">Серебро</p>
+                <p className="text-sm text-muted-foreground">{t.silver}</p>
               </CardContent>
             </Card>
             <Card>
               <CardContent className="pt-6 text-center">
                 <Medal className="h-8 w-8 mx-auto text-orange-500 mb-2" />
                 <p className="text-2xl font-bold">{sportsman.bronzeMedals || 0}</p>
-                <p className="text-sm text-muted-foreground">Бронза</p>
+                <p className="text-sm text-muted-foreground">{t.bronze}</p>
               </CardContent>
             </Card>
           </div>
@@ -214,15 +217,15 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
           {/* Tabs */}
           <Tabs defaultValue="competitions" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="competitions">Соревнования</TabsTrigger>
-              <TabsTrigger value="achievements">Достижения</TabsTrigger>
+              <TabsTrigger value="competitions">{t.competitions}</TabsTrigger>
+              <TabsTrigger value="achievements">{t.achievements}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="competitions">
               <Card>
                 <CardHeader>
-                  <CardTitle>История соревнований</CardTitle>
-                  <CardDescription>Последние 10 соревнований</CardDescription>
+                  <CardTitle>{t.competitionHistory}</CardTitle>
+                  <CardDescription>{t.last10Competitions}</CardDescription>
                 </CardHeader>
                 <CardContent>
                   {sportsman.registrations.length > 0 ? (
@@ -239,7 +242,7 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
                           >
                             <div>
                               <Link
-                                href={`${baseUrl}/competitions/${reg.competition.id}`}
+                                href={`${urlPrefix}/competitions/${reg.competition.id}`}
                                 className="font-medium hover:underline"
                               >
                                 {compTitle}
@@ -253,7 +256,7 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
                               </p>
                             </div>
                             <Badge variant={reg.competition.status === 'COMPLETED' ? 'secondary' : 'outline'}>
-                              {reg.competition.status === 'COMPLETED' ? 'Завершено' : 'Предстоит'}
+                              {reg.competition.status === 'COMPLETED' ? t.completed : t.upcoming}
                             </Badge>
                           </div>
                         )
@@ -261,7 +264,7 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-center py-6">
-                      Нет зарегистрированных соревнований
+                      {t.noRegisteredCompetitions}
                     </p>
                   )}
                 </CardContent>
@@ -273,7 +276,7 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
                 <CardContent className="py-12 text-center">
                   <Award className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                   <p className="text-muted-foreground">
-                    Достижения будут отображаться здесь
+                    {t.achievementsWillBeShown}
                   </p>
                 </CardContent>
               </Card>
@@ -287,19 +290,19 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
           {(sportsman.weight || sportsman.height) && (
             <Card>
               <CardHeader>
-                <CardTitle>Физические данные</CardTitle>
+                <CardTitle>{t.physicalData}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {sportsman.weight && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Вес</span>
-                    <span className="font-medium">{sportsman.weight} кг</span>
+                    <span className="text-muted-foreground">{t.weight}</span>
+                    <span className="font-medium">{sportsman.weight} {t.kg}</span>
                   </div>
                 )}
                 {sportsman.height && (
                   <div className="flex justify-between">
-                    <span className="text-muted-foreground">Рост</span>
-                    <span className="font-medium">{sportsman.height} см</span>
+                    <span className="text-muted-foreground">{t.height}</span>
+                    <span className="font-medium">{sportsman.height} {t.cm}</span>
                   </div>
                 )}
               </CardContent>
@@ -310,7 +313,7 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
           {sportsman.trainer && (
             <Card>
               <CardHeader>
-                <CardTitle>Тренер</CardTitle>
+                <CardTitle>{t.trainer}</CardTitle>
               </CardHeader>
               <CardContent>
                 <span className="font-medium">
@@ -324,17 +327,17 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
           {sportsman.club && (
             <Card>
               <CardHeader>
-                <CardTitle>Клуб</CardTitle>
+                <CardTitle>{t.club}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Link
-                  href={`${baseUrl}/clubs/${sportsman.club.id}`}
+                  href={`${urlPrefix}/clubs/${sportsman.club.id}`}
                   className="font-medium hover:underline"
                 >
                   {clubTitle}
                 </Link>
                 <p className="text-sm text-muted-foreground mt-1">
-                  {sportsman.club._count.sportsmen} спортсменов
+                  {sportsman.club._count.sportsmen} {t.athletes.toLowerCase()}
                 </p>
               </CardContent>
             </Card>
@@ -346,7 +349,7 @@ export default async function FederationSportsmanPage({ params }: PageProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Clock className="h-4 w-4" />
-                  В системе с
+                  {t.memberSince}
                 </CardTitle>
               </CardHeader>
               <CardContent>

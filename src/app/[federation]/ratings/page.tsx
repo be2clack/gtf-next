@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Trophy, Medal, Search } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getT } from '@/lib/translations'
 import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -34,25 +35,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-// Official GTF discipline names - DO NOT TRANSLATE
+// Official GTF discipline names - these are standard terms
 const disciplineLabels: Record<string, string> = {
   SPARRING: 'Спарринг',
   PATTERNS: 'Туль',
   SPECIAL_TECHNIQUE: 'Спец. техника',
   POWER_BREAKING: 'Силовое разбивание',
-}
-
-const genderLabels: Record<string, string> = {
-  MALE: 'Мужчины',
-  FEMALE: 'Женщины',
-}
-
-const ageGroupLabels: Record<string, string> = {
-  CHILDREN: 'Дети',
-  CADETS: 'Кадеты',
-  JUNIORS: 'Юниоры',
-  ADULTS: 'Взрослые',
-  VETERANS: 'Ветераны',
 }
 
 export default async function FederationRatingsPage({ params, searchParams }: PageProps) {
@@ -65,6 +53,22 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
 
   const headersList = await headers()
   const locale = headersList.get('x-locale') || 'ru'
+  const isSubdomain = headersList.get('x-is-subdomain') === 'true'
+  const t = getT(locale)
+
+  // Translated labels
+  const genderLabels: Record<string, string> = {
+    MALE: t.male,
+    FEMALE: t.female,
+  }
+
+  const ageGroupLabels: Record<string, string> = {
+    CHILDREN: t.children,
+    CADETS: t.cadets,
+    JUNIORS: t.juniors,
+    ADULTS: t.adults,
+    VETERANS: t.veterans,
+  }
 
   // Get federation
   const federation = await prisma.federation.findFirst({
@@ -81,7 +85,8 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
   const search = searchParamsData.search
   const page = parseInt(searchParamsData.page || '1')
   const limit = 50
-  const baseUrl = `/${federationCode}/ratings`
+  const urlPrefix = isSubdomain ? '' : `/${federationCode}`
+  const baseUrl = `${urlPrefix}/ratings`
 
   // Build where clause for sportsmen with rating
   const where: Record<string, unknown> = {
@@ -151,9 +156,9 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Рейтинг спортсменов</h1>
+          <h1 className="text-3xl font-bold">{t.athleteRatings}</h1>
           <p className="text-muted-foreground mt-1">
-            {total} спортсменов в рейтинге
+            {total} {t.athletesInRating}
           </p>
         </div>
       </div>
@@ -176,7 +181,7 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
       <div className="flex flex-wrap gap-2 mb-6">
         <Link href={`${baseUrl}?discipline=${discipline}${ageGroup ? `&ageGroup=${ageGroup}` : ''}`}>
           <Badge variant={!gender ? 'default' : 'outline'} className="cursor-pointer">
-            Все
+            {t.all}
           </Badge>
         </Link>
         {Object.entries(genderLabels).map(([key, label]) => (
@@ -195,7 +200,7 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
       <div className="flex flex-wrap gap-2 mb-6">
         <Link href={`${baseUrl}?discipline=${discipline}${gender ? `&gender=${gender}` : ''}`}>
           <Badge variant={!ageGroup ? 'default' : 'outline'} className="cursor-pointer">
-            Все возрасты
+            {t.allAges}
           </Badge>
         </Link>
         {Object.entries(ageGroupLabels).map(([key, label]) => (
@@ -217,7 +222,7 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
           <Input
             type="search"
             name="search"
-            placeholder="Поиск по имени..."
+            placeholder={t.searchByName}
             defaultValue={search}
             className="pl-10"
           />
@@ -236,10 +241,10 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
                 <thead>
                   <tr className="border-b bg-muted/50">
                     <th className="text-left p-4 font-medium w-16">#</th>
-                    <th className="text-left p-4 font-medium">Спортсмен</th>
-                    <th className="text-left p-4 font-medium hidden md:table-cell">Клуб</th>
-                    <th className="text-left p-4 font-medium hidden sm:table-cell">Страна</th>
-                    <th className="text-right p-4 font-medium">Рейтинг</th>
+                    <th className="text-left p-4 font-medium">{t.athlete}</th>
+                    <th className="text-left p-4 font-medium hidden md:table-cell">{t.club}</th>
+                    <th className="text-left p-4 font-medium hidden sm:table-cell">{t.country}</th>
+                    <th className="text-right p-4 font-medium">{t.rating}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -270,14 +275,14 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
                         </td>
                         <td className="p-4">
                           <Link
-                            href={`/${federationCode}/sportsmen/${sportsman.id}`}
+                            href={`${urlPrefix}/sportsmen/${sportsman.id}`}
                             className="font-medium hover:underline"
                           >
                             {sportsman.lastName} {sportsman.firstName}
                           </Link>
                           {sportsman.dan > 0 && (
                             <span className="ml-2 text-xs text-muted-foreground">
-                              {sportsman.dan} дан
+                              {sportsman.dan} {t.dan}
                             </span>
                           )}
                         </td>
@@ -313,7 +318,7 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
         <Card>
           <CardContent className="py-12 text-center">
             <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Спортсмены не найдены</p>
+            <p className="text-muted-foreground">{t.athletesNotFound}</p>
           </CardContent>
         </Card>
       )}
@@ -324,7 +329,7 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
           {page > 1 && (
             <Button asChild variant="outline">
               <Link href={`${baseUrl}?discipline=${discipline}&page=${page - 1}${gender ? `&gender=${gender}` : ''}${ageGroup ? `&ageGroup=${ageGroup}` : ''}${search ? `&search=${search}` : ''}`}>
-                Назад
+                {t.back}
               </Link>
             </Button>
           )}
@@ -334,7 +339,7 @@ export default async function FederationRatingsPage({ params, searchParams }: Pa
           {page < totalPages && (
             <Button asChild variant="outline">
               <Link href={`${baseUrl}?discipline=${discipline}&page=${page + 1}${gender ? `&gender=${gender}` : ''}${ageGroup ? `&ageGroup=${ageGroup}` : ''}${search ? `&search=${search}` : ''}`}>
-                Вперёд
+                {t.forward}
               </Link>
             </Button>
           )}

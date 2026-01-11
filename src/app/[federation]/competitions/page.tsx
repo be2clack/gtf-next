@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Calendar, MapPin, Users } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getT } from '@/lib/translations'
 import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -32,19 +33,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Черновик',
-  ANNOUNCED: 'Анонсировано',
-  REGISTRATION_OPEN: 'Регистрация открыта',
-  REGISTRATION_CLOSED: 'Регистрация закрыта',
-  WEIGH_IN: 'Взвешивание',
-  DRAW_PENDING: 'Ожидает жеребьёвки',
-  DRAW_COMPLETED: 'Жеребьёвка завершена',
-  IN_PROGRESS: 'Идёт',
-  COMPLETED: 'Завершено',
-  CANCELLED: 'Отменено',
-}
-
 const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary',
   ANNOUNCED: 'outline',
@@ -58,13 +46,6 @@ const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'ou
   CANCELLED: 'destructive',
 }
 
-const levelLabels: Record<string, string> = {
-  CLUB: 'Клубные',
-  REGIONAL: 'Региональные',
-  NATIONAL: 'Национальные',
-  INTERNATIONAL: 'Международные',
-}
-
 export default async function FederationCompetitionsPage({ params, searchParams }: PageProps) {
   const { federation: federationCode } = await params
   const searchParamsData = await searchParams
@@ -75,6 +56,29 @@ export default async function FederationCompetitionsPage({ params, searchParams 
 
   const headersList = await headers()
   const locale = headersList.get('x-locale') || 'ru'
+  const isSubdomain = headersList.get('x-is-subdomain') === 'true'
+  const t = getT(locale)
+
+  // Translated labels
+  const statusLabels: Record<string, string> = {
+    DRAFT: t.statusDraft,
+    ANNOUNCED: t.statusAnnounced,
+    REGISTRATION_OPEN: t.statusRegistrationOpen,
+    REGISTRATION_CLOSED: t.statusRegistrationClosed,
+    WEIGH_IN: t.statusWeighIn,
+    DRAW_PENDING: t.statusDrawPending,
+    DRAW_COMPLETED: t.statusDrawCompleted,
+    IN_PROGRESS: t.statusInProgress,
+    COMPLETED: t.statusCompleted,
+    CANCELLED: t.statusCancelled,
+  }
+
+  const levelLabels: Record<string, string> = {
+    CLUB: t.clubLevel,
+    REGIONAL: t.regionalLevel,
+    NATIONAL: t.nationalLevel,
+    INTERNATIONAL: t.internationalLevel,
+  }
 
   // Get federation
   const federation = await prisma.federation.findFirst({
@@ -90,7 +94,8 @@ export default async function FederationCompetitionsPage({ params, searchParams 
   const year = searchParamsData.year ? parseInt(searchParamsData.year) : undefined
   const page = parseInt(searchParamsData.page || '1')
   const limit = 12
-  const baseUrl = `/${federationCode}/competitions`
+  const urlPrefix = isSubdomain ? '' : `/${federationCode}`
+  const baseUrl = `${urlPrefix}/competitions`
 
   // Build where clause
   const where: Record<string, unknown> = {
@@ -155,9 +160,9 @@ export default async function FederationCompetitionsPage({ params, searchParams 
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Соревнования</h1>
+          <h1 className="text-3xl font-bold">{t.competitions}</h1>
           <p className="text-muted-foreground mt-1">
-            {total} {total === 1 ? 'соревнование' : 'соревнований'}
+            {total} {t.competitions.toLowerCase()}
           </p>
         </div>
       </div>
@@ -166,7 +171,7 @@ export default async function FederationCompetitionsPage({ params, searchParams 
       <div className="flex flex-wrap gap-2 mb-6">
         <Link href={baseUrl}>
           <Badge variant={!status && !level && !year ? 'default' : 'outline'} className="cursor-pointer">
-            Все
+            {t.all}
           </Badge>
         </Link>
         {Object.entries(statusLabels).filter(([key]) => key !== 'DRAFT').map(([key, label]) => (
@@ -240,14 +245,14 @@ export default async function FederationCompetitionsPage({ params, searchParams 
                     )}
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      {competition._count.registrations} участников
+                      {competition._count.registrations} {t.athletes.toLowerCase()}
                     </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="mt-auto">
                   <Button asChild className="w-full">
-                    <Link href={`/${federationCode}/competitions/${competition.id}`}>
-                      Подробнее
+                    <Link href={`${urlPrefix}/competitions/${competition.id}`}>
+                      {t.viewDetails}
                     </Link>
                   </Button>
                 </CardContent>
@@ -258,7 +263,7 @@ export default async function FederationCompetitionsPage({ params, searchParams 
       ) : (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Соревнования не найдены</p>
+            <p className="text-muted-foreground">{t.competitionsNotFound}</p>
           </CardContent>
         </Card>
       )}
@@ -269,7 +274,7 @@ export default async function FederationCompetitionsPage({ params, searchParams 
           {page > 1 && (
             <Button asChild variant="outline">
               <Link href={`${baseUrl}?page=${page - 1}${status ? `&status=${status}` : ''}${level ? `&level=${level}` : ''}${year ? `&year=${year}` : ''}`}>
-                Назад
+                {t.back}
               </Link>
             </Button>
           )}
@@ -279,7 +284,7 @@ export default async function FederationCompetitionsPage({ params, searchParams 
           {page < totalPages && (
             <Button asChild variant="outline">
               <Link href={`${baseUrl}?page=${page + 1}${status ? `&status=${status}` : ''}${level ? `&level=${level}` : ''}${year ? `&year=${year}` : ''}`}>
-                Вперёд
+                {t.forward}
               </Link>
             </Button>
           )}

@@ -112,6 +112,7 @@ export default async function FederationPage({ params }: PageProps) {
   // Get locale from headers
   const headersList = await headers()
   const locale = headersList.get('x-locale') || 'ru'
+  const isSubdomain = headersList.get('x-is-subdomain') === 'true'
 
   // Fetch federation from database
   const federation = await prisma.federation.findFirst({
@@ -184,8 +185,8 @@ export default async function FederationPage({ params }: PageProps) {
     { key: 'competitions', value: competitionsCount, label: t.competitions, icon: Trophy },
   ]
 
-  // Build base URL for links (include federation prefix)
-  const baseUrl = `/${federationCode}`
+  // Build base URL for links (empty on subdomain, include federation prefix otherwise)
+  const urlPrefix = isSubdomain ? '' : `/${federationCode}`
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -265,13 +266,13 @@ export default async function FederationPage({ params }: PageProps) {
           {/* CTA Buttons */}
           <div className="flex flex-wrap justify-center gap-4 mt-12">
             <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100">
-              <Link href={`${baseUrl}/competitions`}>
+              <Link href={`${urlPrefix}/competitions`}>
                 <Trophy className="mr-2 h-5 w-5" />
                 {t.allCompetitions}
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-              <Link href={`${baseUrl}/ratings`}>
+              <Link href={`${urlPrefix}/ratings`}>
                 <Medal className="mr-2 h-5 w-5" />
                 {t.athletes}
               </Link>
@@ -294,7 +295,7 @@ export default async function FederationPage({ params }: PageProps) {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl md:text-3xl font-bold">{t.upcomingCompetitions}</h2>
               <Button asChild variant="ghost">
-                <Link href={`${baseUrl}/competitions`} className="flex items-center gap-2">
+                <Link href={`${urlPrefix}/competitions`} className="flex items-center gap-2">
                   {t.allCompetitions}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -334,7 +335,7 @@ export default async function FederationPage({ params }: PageProps) {
                   </CardHeader>
                   <CardContent>
                     <Button asChild className="w-full">
-                      <Link href={`${baseUrl}/competitions/${competition.id}`}>
+                      <Link href={`${urlPrefix}/competitions/${competition.id}`}>
                         {t.viewDetails}
                       </Link>
                     </Button>
@@ -353,7 +354,7 @@ export default async function FederationPage({ params }: PageProps) {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl md:text-3xl font-bold">{t.latestNews}</h2>
               <Button asChild variant="ghost">
-                <Link href={`${baseUrl}/news`} className="flex items-center gap-2">
+                <Link href={`${urlPrefix}/news`} className="flex items-center gap-2">
                   {t.allNews}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -386,7 +387,7 @@ export default async function FederationPage({ params }: PageProps) {
                   </CardHeader>
                   <CardContent>
                     <Button asChild variant="link" className="p-0">
-                      <Link href={`${baseUrl}/news/${news.id}`}>
+                      <Link href={`${urlPrefix}/news/${news.id}`}>
                         {t.readMore} <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>
                     </Button>
@@ -407,10 +408,10 @@ export default async function FederationPage({ params }: PageProps) {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg" variant="secondary">
-              <Link href={`${baseUrl}/login`}>{t.login}</Link>
+              <Link href={`${urlPrefix}/login`}>{t.login}</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-              <Link href={`${baseUrl}/clubs`}>{t.findClub}</Link>
+              <Link href={`${urlPrefix}/clubs`}>{t.findClub}</Link>
             </Button>
           </div>
         </div>

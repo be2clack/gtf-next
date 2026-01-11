@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Calendar, MapPin, Users, Trophy, Clock, Building2 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getT } from '@/lib/translations'
 import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -33,25 +34,6 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Черновик',
-  ANNOUNCED: 'Анонсировано',
-  REGISTRATION_OPEN: 'Регистрация открыта',
-  REGISTRATION_CLOSED: 'Регистрация закрыта',
-  WEIGH_IN: 'Взвешивание',
-  DRAW_PENDING: 'Ожидает жеребьёвки',
-  DRAW_COMPLETED: 'Жеребьёвка завершена',
-  IN_PROGRESS: 'Идёт',
-  COMPLETED: 'Завершено',
-  CANCELLED: 'Отменено',
-}
-
-const levelLabels: Record<string, string> = {
-  CLUB: 'Клубные',
-  REGIONAL: 'Региональные',
-  NATIONAL: 'Национальные',
-  INTERNATIONAL: 'Международные',
-}
 
 export default async function FederationCompetitionPage({ params }: PageProps) {
   const { federation: federationCode, id } = await params
@@ -62,6 +44,29 @@ export default async function FederationCompetitionPage({ params }: PageProps) {
 
   const headersList = await headers()
   const locale = headersList.get('x-locale') || 'ru'
+  const isSubdomain = headersList.get('x-is-subdomain') === 'true'
+  const t = getT(locale)
+  const urlPrefix = isSubdomain ? '' : `/${federationCode}`
+
+  const statusLabels: Record<string, string> = {
+    DRAFT: t.statusDraft,
+    ANNOUNCED: t.statusAnnounced,
+    REGISTRATION_OPEN: t.statusRegistrationOpen,
+    REGISTRATION_CLOSED: t.statusRegistrationClosed,
+    WEIGH_IN: t.statusWeighIn,
+    DRAW_PENDING: t.statusDrawPending,
+    DRAW_COMPLETED: t.statusDrawCompleted,
+    IN_PROGRESS: t.statusInProgress,
+    COMPLETED: t.statusCompleted,
+    CANCELLED: t.statusCancelled,
+  }
+
+  const levelLabels: Record<string, string> = {
+    CLUB: t.clubLevel,
+    REGIONAL: t.regionalLevel,
+    NATIONAL: t.nationalLevel,
+    INTERNATIONAL: t.internationalLevel,
+  }
 
   const competition = await prisma.competition.findUnique({
     where: { id: parseInt(id), deletedAt: null },
@@ -111,7 +116,6 @@ export default async function FederationCompetitionPage({ params }: PageProps) {
     notFound()
   }
 
-  const baseUrl = `/${federationCode}`
   const title = getTranslation(competition.title as Record<string, string>, locale as Locale)
   const description = getTranslation(competition.description as Record<string, string>, locale as Locale)
   const location = competition.city
@@ -124,9 +128,9 @@ export default async function FederationCompetitionPage({ params }: PageProps) {
     <div className="container py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link href={baseUrl} className="hover:text-foreground">Главная</Link>
+        <Link href={urlPrefix || '/'} className="hover:text-foreground">Главная</Link>
         <span>/</span>
-        <Link href={`${baseUrl}/competitions`} className="hover:text-foreground">Соревнования</Link>
+        <Link href={`${urlPrefix}/competitions`} className="hover:text-foreground">Соревнования</Link>
         <span>/</span>
         <span className="text-foreground">{title}</span>
       </nav>
@@ -308,7 +312,7 @@ export default async function FederationCompetitionPage({ params }: PageProps) {
                         >
                           <div>
                             <Link
-                              href={`${baseUrl}/sportsmen/${reg.sportsman!.id}`}
+                              href={`${urlPrefix}/sportsmen/${reg.sportsman!.id}`}
                               className="font-medium hover:underline"
                             >
                               {reg.sportsman!.lastName} {reg.sportsman!.firstName}
@@ -360,7 +364,7 @@ export default async function FederationCompetitionPage({ params }: PageProps) {
                       : 'даты начала соревнований'}
                   </p>
                   <Button asChild className="w-full">
-                    <Link href={`${baseUrl}/competitions/${competition.id}/register`}>
+                    <Link href={`${urlPrefix}/competitions/${competition.id}/register`}>
                       Зарегистрироваться
                     </Link>
                   </Button>

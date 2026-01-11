@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Calendar, MapPin, Users, Filter } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getT } from '@/lib/translations'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
 
@@ -25,36 +26,43 @@ interface CompetitionsPageProps {
   }>
 }
 
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Черновик',
-  ANNOUNCED: 'Анонсировано',
-  REGISTRATION_OPEN: 'Регистрация',
-  REGISTRATION_CLOSED: 'Регистрация закрыта',
-  IN_PROGRESS: 'Идёт',
-  COMPLETED: 'Завершено',
-  CANCELLED: 'Отменено',
-}
-
 const statusColors: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
   DRAFT: 'secondary',
   ANNOUNCED: 'outline',
   REGISTRATION_OPEN: 'default',
   REGISTRATION_CLOSED: 'secondary',
+  WEIGH_IN: 'default',
+  DRAW_PENDING: 'outline',
+  DRAW_COMPLETED: 'outline',
   IN_PROGRESS: 'default',
   COMPLETED: 'secondary',
   CANCELLED: 'destructive',
 }
 
-const levelLabels: Record<string, string> = {
-  CLUB: 'Клубные',
-  REGIONAL: 'Региональные',
-  NATIONAL: 'Национальные',
-  INTERNATIONAL: 'Международные',
-}
-
 export default async function CompetitionsPage({ searchParams }: CompetitionsPageProps) {
   const { federation, locale } = await getFederationContext()
   const params = await searchParams
+  const t = getT(locale)
+
+  const statusLabels: Record<string, string> = {
+    DRAFT: t.statusDraft,
+    ANNOUNCED: t.statusAnnounced,
+    REGISTRATION_OPEN: t.statusRegistrationOpen,
+    REGISTRATION_CLOSED: t.statusRegistrationClosed,
+    WEIGH_IN: t.statusWeighIn,
+    DRAW_PENDING: t.statusDrawPending,
+    DRAW_COMPLETED: t.statusDrawCompleted,
+    IN_PROGRESS: t.statusInProgress,
+    COMPLETED: t.statusCompleted,
+    CANCELLED: t.statusCancelled,
+  }
+
+  const levelLabels: Record<string, string> = {
+    CLUB: t.clubLevel,
+    REGIONAL: t.regionalLevel,
+    NATIONAL: t.nationalLevel,
+    INTERNATIONAL: t.internationalLevel,
+  }
 
   const status = params.status
   const level = params.level

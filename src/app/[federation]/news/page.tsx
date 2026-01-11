@@ -8,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Calendar, Newspaper } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
 import { getNewsPhotoUrl } from '@/lib/utils/images'
+import { getT } from '@/lib/translations'
 import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -42,6 +43,8 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
 
   const headersList = await headers()
   const locale = headersList.get('x-locale') || 'ru'
+  const isSubdomain = headersList.get('x-is-subdomain') === 'true'
+  const t = getT(locale)
 
   // Get federation
   const federation = await prisma.federation.findFirst({
@@ -55,7 +58,8 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
   const year = searchParamsData.year ? parseInt(searchParamsData.year) : undefined
   const page = parseInt(searchParamsData.page || '1')
   const limit = 12
-  const baseUrl = `/${federationCode}/news`
+  const urlPrefix = isSubdomain ? '' : `/${federationCode}`
+  const baseUrl = `${urlPrefix}/news`
 
   // Build where clause
   const where: Record<string, unknown> = {
@@ -103,9 +107,9 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Новости</h1>
+          <h1 className="text-3xl font-bold">{t.news}</h1>
           <p className="text-muted-foreground mt-1">
-            {total} {total === 1 ? 'новость' : total < 5 ? 'новости' : 'новостей'}
+            {total} {t.news.toLowerCase()}
           </p>
         </div>
       </div>
@@ -114,7 +118,7 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
       <div className="flex flex-wrap gap-2 mb-6">
         <Link href={baseUrl}>
           <Badge variant={!year ? 'default' : 'outline'} className="cursor-pointer">
-            Все годы
+            {t.allYears}
           </Badge>
         </Link>
         {years.slice(0, 5).map((y) => (
@@ -167,8 +171,8 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
                 </CardHeader>
                 <CardContent className="mt-auto">
                   <Button asChild variant="outline" className="w-full">
-                    <Link href={`/${federationCode}/news/${item.id}`}>
-                      Читать далее
+                    <Link href={`${urlPrefix}/news/${item.id}`}>
+                      {t.readMore}
                     </Link>
                   </Button>
                 </CardContent>
@@ -180,7 +184,7 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
         <Card>
           <CardContent className="py-12 text-center">
             <Newspaper className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-            <p className="text-muted-foreground">Новости не найдены</p>
+            <p className="text-muted-foreground">{t.newsNotFound}</p>
           </CardContent>
         </Card>
       )}
@@ -191,7 +195,7 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
           {page > 1 && (
             <Button asChild variant="outline">
               <Link href={`${baseUrl}?page=${page - 1}${year ? `&year=${year}` : ''}`}>
-                Назад
+                {t.back}
               </Link>
             </Button>
           )}
@@ -201,7 +205,7 @@ export default async function FederationNewsPage({ params, searchParams }: PageP
           {page < totalPages && (
             <Button asChild variant="outline">
               <Link href={`${baseUrl}?page=${page + 1}${year ? `&year=${year}` : ''}`}>
-                Вперёд
+                {t.forward}
               </Link>
             </Button>
           )}

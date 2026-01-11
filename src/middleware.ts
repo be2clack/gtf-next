@@ -23,16 +23,18 @@ export function middleware(request: NextRequest) {
   // Extract federation code from subdomain or path
   let federationCode: string | null = null
   let locale = DEFAULT_LOCALE
+  let isSubdomain = false
 
   // Check subdomain first (e.g., kg.gtf.global)
   const subdomain = extractSubdomain(hostname)
   if (subdomain && VALID_FEDERATION_CODES.includes(subdomain)) {
     federationCode = subdomain
+    isSubdomain = true
   }
 
-  // Check path prefix (e.g., /kg/competitions)
+  // Check path prefix (e.g., /kg/competitions) - only if not already set by subdomain
   const pathParts = pathname.split('/').filter(Boolean)
-  if (pathParts[0] && VALID_FEDERATION_CODES.includes(pathParts[0])) {
+  if (!isSubdomain && pathParts[0] && VALID_FEDERATION_CODES.includes(pathParts[0])) {
     federationCode = pathParts[0]
   }
 
@@ -56,6 +58,7 @@ export function middleware(request: NextRequest) {
   response.headers.set('x-federation-code', federationCode || 'global')
   response.headers.set('x-locale', locale)
   response.headers.set('x-pathname', pathname)
+  response.headers.set('x-is-subdomain', isSubdomain ? 'true' : 'false')
 
   return response
 }
