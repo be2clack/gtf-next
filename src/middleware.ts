@@ -6,7 +6,7 @@ const LOCALES = ['ru', 'en', 'kg', 'kz', 'uz', 'ar']
 const DEFAULT_LOCALE = 'ru'
 
 // Federation codes that are valid subdomains
-const VALID_FEDERATION_CODES = ['kg', 'kz', 'uz', 'ru', 'ae']
+const VALID_FEDERATION_CODES = ['kg', 'kz', 'uz', 'ru', 'ae', 'tj', 'tm']
 
 export function middleware(request: NextRequest) {
   const { pathname, hostname } = request.nextUrl

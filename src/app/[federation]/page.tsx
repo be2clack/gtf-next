@@ -1,14 +1,18 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { getFederationContext } from '@/lib/federation'
+import { notFound } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Trophy, Users, Building2, Calendar, Medal, GraduationCap, ArrowRight, Globe, Flag } from 'lucide-react'
+import { Trophy, Users, Building2, Calendar, Medal, GraduationCap, ArrowRight } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
 import { getFederationLogoUrl, getCompetitionPhotoUrl, getNewsPhotoUrl, getHeroBackgroundUrl } from '@/lib/utils/images'
+import { headers } from 'next/headers'
 import type { Locale } from '@/types'
+
+// Valid federation codes
+const VALID_FEDERATION_CODES = ['kg', 'kz', 'uz', 'ru', 'ae', 'tj', 'tm']
 
 // Country flags for federations
 const countryFlags: Record<string, string> = {
@@ -39,11 +43,6 @@ const translations = {
     registerDescription: 'Войдите в систему для регистрации на соревнования, просмотра результатов и управления профилем спортсмена.',
     readMore: 'Читать далее',
     slogan: 'Спорт. Дисциплина. Достижения.',
-    ourFederations: 'Наши федерации',
-    federationsDesc: 'Федерации тхэквондо со всего мира',
-    visitSite: 'Посетить сайт',
-    countries: 'Стран',
-    federations: 'Федераций',
   },
   en: {
     athletes: 'Athletes',
@@ -61,11 +60,6 @@ const translations = {
     registerDescription: 'Log in to register for competitions, view results, and manage your athlete profile.',
     readMore: 'Read more',
     slogan: 'Sport. Discipline. Achievements.',
-    ourFederations: 'Our Federations',
-    federationsDesc: 'Taekwondo federations from around the world',
-    visitSite: 'Visit Site',
-    countries: 'Countries',
-    federations: 'Federations',
   },
   ky: {
     athletes: 'Спортчулар',
@@ -83,11 +77,6 @@ const translations = {
     registerDescription: 'Мелдештерге катталуу, натыйжаларды көрүү жана спортчунун профилин башкаруу үчүн системага кириңиз.',
     readMore: 'Кененирээк',
     slogan: 'Спорт. Тартип. Жетишкендиктер.',
-    ourFederations: 'Биздин федерациялар',
-    federationsDesc: 'Дүйнө жүзүндөгү тхэквондо федерациялары',
-    visitSite: 'Сайтка баруу',
-    countries: 'Өлкөлөр',
-    federations: 'Федерациялар',
   },
   kk: {
     athletes: 'Спортшылар',
@@ -105,39 +94,63 @@ const translations = {
     registerDescription: 'Жарыстарға тіркелу, нәтижелерді қарау және спортшы профилін басқару үшін жүйеге кіріңіз.',
     readMore: 'Толығырақ оқу',
     slogan: 'Спорт. Тәртіп. Жетістіктер.',
-    ourFederations: 'Біздің федерациялар',
-    federationsDesc: 'Әлемдегі тхэквондо федерациялары',
-    visitSite: 'Сайтқа бару',
-    countries: 'Елдер',
-    federations: 'Федерациялар',
   },
 }
 
-export default async function HomePage() {
-  const { federation, isGlobal, locale } = await getFederationContext()
+interface PageProps {
+  params: Promise<{ federation: string }>
+}
+
+export default async function FederationPage({ params }: PageProps) {
+  const { federation: federationCode } = await params
+
+  // Validate federation code
+  if (!VALID_FEDERATION_CODES.includes(federationCode)) {
+    notFound()
+  }
+
+  // Get locale from headers
+  const headersList = await headers()
+  const locale = headersList.get('x-locale') || 'ru'
+
+  // Fetch federation from database
+  const federation = await prisma.federation.findFirst({
+    where: {
+      code: federationCode,
+      status: 'ACTIVE',
+      deletedAt: null,
+    },
+    include: {
+      country: true,
+    },
+  })
+
+  if (!federation) {
+    notFound()
+  }
 
   const t = translations[locale as keyof typeof translations] || translations.ru
 
-  // Get stats and data
-  const [sportsmenCount, trainersCount, clubsCount, competitionsCount, upcomingCompetitions, latestNews, allFederations] = await Promise.all([
+  // Get stats and data for this federation
+  const [sportsmenCount, trainersCount, clubsCount, competitionsCount, upcomingCompetitions, latestNews] = await Promise.all([
     prisma.sportsman.count({
-      where: federation ? { federationId: federation.id } : {},
+      where: { federationId: federation.id },
     }),
     prisma.trainer.count({
-      where: federation ? { federationId: federation.id } : {},
+      where: { federationId: federation.id },
     }),
     prisma.club.count({
-      where: federation ? { federationId: federation.id } : {},
+      where: { federationId: federation.id },
     }),
     prisma.competition.count({
       where: {
-        ...(federation ? { federationId: federation.id } : {}),
+        federationId: federation.id,
         deletedAt: null,
       },
     }),
     prisma.competition.findMany({
       where: {
-        ...(federation ? { federationId: federation.id } : {}),
+        federationId: federation.id,
         startDate: { gte: new Date() },
         status: { not: 'DRAFT' },
         deletedAt: null,
@@ -150,53 +163,29 @@ export default async function HomePage() {
     }),
     prisma.news.findMany({
       where: {
-        ...(federation ? { federationId: federation.id } : {}),
+        federationId: federation.id,
         published: true,
       },
       orderBy: { createdAt: 'desc' },
       take: 4,
     }),
-    // Get all federations for global page
-    !federation ? prisma.federation.findMany({
-      where: { status: 'ACTIVE' },
-      include: {
-        country: { select: { code: true, nameRu: true, nameEn: true } },
-        _count: {
-          select: {
-            sportsmen: true,
-            clubs: true,
-            competitions: true,
-          }
-        }
-      },
-      orderBy: { name: 'asc' },
-    }) : Promise.resolve([]),
   ])
 
-  const title = federation
-    ? getTranslation(federation.siteTitle as Record<string, string>, locale as Locale) || federation.name
-    : 'Global Taekwondo Federation'
-
-  const description = federation
-    ? getTranslation(federation.description as Record<string, string>, locale as Locale)
-    : t.slogan
+  const title = getTranslation(federation.siteTitle as Record<string, string>, locale as Locale) || federation.name
+  const description = getTranslation(federation.description as Record<string, string>, locale as Locale) || t.slogan
 
   const heroBackground = getHeroBackgroundUrl(federation?.heroBackground)
   const federationLogo = getFederationLogoUrl(federation?.logo)
-  const globalLogo = !federation ? '/logo.png' : null
 
-  // Different stats for global vs federation pages
-  const stats = !federation ? [
-    { key: 'federations', value: allFederations.length, label: t.federations, icon: Flag },
-    { key: 'athletes', value: sportsmenCount, label: t.athletes, icon: Users },
-    { key: 'clubs', value: clubsCount, label: t.clubs, icon: Building2 },
-    { key: 'competitions', value: competitionsCount, label: t.competitions, icon: Trophy },
-  ] : [
+  const stats = [
     { key: 'athletes', value: sportsmenCount, label: t.athletes, icon: Users },
     { key: 'coaches', value: trainersCount, label: t.coaches, icon: GraduationCap },
     { key: 'clubs', value: clubsCount, label: t.clubs, icon: Building2 },
     { key: 'competitions', value: competitionsCount, label: t.competitions, icon: Trophy },
   ]
+
+  // Build base URL for links (include federation prefix)
+  const baseUrl = `/${federationCode}`
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -217,28 +206,33 @@ export default async function HomePage() {
         <div className="relative z-10 container mx-auto px-4 text-center text-white py-20">
           {/* Logos */}
           <div className="flex justify-center items-center gap-6 mb-8">
-            {globalLogo && (
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-2xl bg-white/10 backdrop-blur">
-                <Image
-                  src={globalLogo}
-                  alt="GTF"
-                  width={128}
-                  height={128}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
+            {/* Global GTF Logo */}
+            <div className="w-20 h-20 md:w-24 md:h-24 rounded-full overflow-hidden shadow-2xl bg-white/10 backdrop-blur">
+              <Image
+                src="/logo.png"
+                alt="GTF"
+                width={96}
+                height={96}
+                className="w-full h-full object-cover"
+              />
+            </div>
+            {/* Federation Logo */}
             {federationLogo && (
               <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-2xl">
                 <Image
                   src={federationLogo}
-                  alt={federation?.name || 'Federation'}
+                  alt={federation.name}
                   width={128}
                   height={128}
                   className="w-full h-full object-cover"
                 />
               </div>
             )}
+          </div>
+
+          {/* Country Flag */}
+          <div className="text-6xl mb-4">
+            {countryFlags[federationCode] || '🌍'}
           </div>
 
           {/* Title */}
@@ -271,13 +265,13 @@ export default async function HomePage() {
           {/* CTA Buttons */}
           <div className="flex flex-wrap justify-center gap-4 mt-12">
             <Button asChild size="lg" className="bg-white text-gray-900 hover:bg-gray-100">
-              <Link href="/competitions">
+              <Link href={`${baseUrl}/competitions`}>
                 <Trophy className="mr-2 h-5 w-5" />
                 {t.allCompetitions}
               </Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
-              <Link href="/ratings">
+              <Link href={`${baseUrl}/ratings`}>
                 <Medal className="mr-2 h-5 w-5" />
                 {t.athletes}
               </Link>
@@ -293,83 +287,6 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Federations Section - Only on Global Page */}
-      {!federation && allFederations.length > 0 && (
-        <section className="py-16 md:py-24 bg-gradient-to-b from-slate-50 to-white">
-          <div className="container mx-auto px-4">
-            <div className="text-center mb-12">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">{t.ourFederations}</h2>
-              <p className="text-muted-foreground text-lg">{t.federationsDesc}</p>
-            </div>
-
-            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {allFederations.map((fed) => (
-                <Card
-                  key={fed.id}
-                  className="overflow-hidden hover:shadow-xl transition-all duration-300 hover:-translate-y-1 group"
-                >
-                  {/* Flag Header */}
-                  <div className="h-32 bg-gradient-to-br from-blue-600 to-purple-700 flex flex-col items-center justify-center text-white relative overflow-hidden">
-                    <div className="absolute inset-0 bg-black/10 group-hover:bg-black/0 transition-colors" />
-                    <span className="text-6xl mb-2 relative z-10">
-                      {countryFlags[fed.code] || '🌍'}
-                    </span>
-                    <span className="text-sm opacity-90 relative z-10">
-                      {locale === 'en' ? fed.country?.nameEn : fed.country?.nameRu}
-                    </span>
-                  </div>
-
-                  <CardHeader className="pb-2">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-lg">{fed.name}</CardTitle>
-                      <Badge variant="secondary" className="bg-green-100 text-green-700">
-                        {fed.status}
-                      </Badge>
-                    </div>
-                    <CardDescription className="flex items-center gap-1">
-                      <Globe className="h-3 w-3" />
-                      {fed.code}.gtf.global
-                    </CardDescription>
-                  </CardHeader>
-
-                  <CardContent>
-                    {/* Stats Row */}
-                    <div className="grid grid-cols-3 gap-4 mb-4 text-center">
-                      <div>
-                        <div className="text-2xl font-bold text-blue-600">
-                          {fed._count.sportsmen}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{t.athletes}</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-green-600">
-                          {fed._count.clubs}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{t.clubs}</div>
-                      </div>
-                      <div>
-                        <div className="text-2xl font-bold text-purple-600">
-                          {fed._count.competitions}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{t.competitions}</div>
-                      </div>
-                    </div>
-
-                    {/* Visit Button */}
-                    <Button asChild className="w-full" variant="outline">
-                      <Link href={`/${fed.code}`}>
-                        {t.visitSite}
-                        <ArrowRight className="ml-2 h-4 w-4" />
-                      </Link>
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
       {/* Upcoming Competitions */}
       {upcomingCompetitions.length > 0 && (
         <section className="py-16 md:py-24">
@@ -377,7 +294,7 @@ export default async function HomePage() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl md:text-3xl font-bold">{t.upcomingCompetitions}</h2>
               <Button asChild variant="ghost">
-                <Link href="/competitions" className="flex items-center gap-2">
+                <Link href={`${baseUrl}/competitions`} className="flex items-center gap-2">
                   {t.allCompetitions}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -417,7 +334,7 @@ export default async function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <Button asChild className="w-full">
-                      <Link href={`/competitions/${competition.id}`}>
+                      <Link href={`${baseUrl}/competitions/${competition.id}`}>
                         {t.viewDetails}
                       </Link>
                     </Button>
@@ -436,7 +353,7 @@ export default async function HomePage() {
             <div className="flex items-center justify-between mb-8">
               <h2 className="text-2xl md:text-3xl font-bold">{t.latestNews}</h2>
               <Button asChild variant="ghost">
-                <Link href="/news" className="flex items-center gap-2">
+                <Link href={`${baseUrl}/news`} className="flex items-center gap-2">
                   {t.allNews}
                   <ArrowRight className="h-4 w-4" />
                 </Link>
@@ -469,7 +386,7 @@ export default async function HomePage() {
                   </CardHeader>
                   <CardContent>
                     <Button asChild variant="link" className="p-0">
-                      <Link href={`/news/${news.id}`}>
+                      <Link href={`${baseUrl}/news/${news.id}`}>
                         {t.readMore} <ArrowRight className="ml-1 h-4 w-4" />
                       </Link>
                     </Button>
@@ -490,14 +407,21 @@ export default async function HomePage() {
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button asChild size="lg" variant="secondary">
-              <Link href="/login">{t.login}</Link>
+              <Link href={`${baseUrl}/login`}>{t.login}</Link>
             </Button>
             <Button asChild size="lg" variant="outline" className="border-primary-foreground/30 text-primary-foreground hover:bg-primary-foreground/10">
-              <Link href="/clubs">{t.findClub}</Link>
+              <Link href={`${baseUrl}/clubs`}>{t.findClub}</Link>
             </Button>
           </div>
         </div>
       </section>
     </div>
   )
+}
+
+// Generate static params for all federations
+export async function generateStaticParams() {
+  return VALID_FEDERATION_CODES.map((code) => ({
+    federation: code,
+  }))
 }

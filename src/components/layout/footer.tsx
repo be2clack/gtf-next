@@ -1,4 +1,7 @@
+'use client'
+
 import Link from 'next/link'
+import { useI18n } from '@/lib/i18n'
 
 interface FooterProps {
   federation?: {
@@ -12,6 +15,7 @@ interface FooterProps {
 }
 
 export function Footer({ federation }: FooterProps) {
+  const { t } = useI18n()
   const currentYear = new Date().getFullYear()
 
   return (
@@ -20,34 +24,34 @@ export function Footer({ federation }: FooterProps) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* About */}
           <div className="space-y-4">
-            <h3 className="font-semibold">О федерации</h3>
+            <h3 className="font-semibold">{t('footer.about')}</h3>
             <p className="text-sm text-muted-foreground">
-              {federation?.name || 'Global Taekwondo Federation'} - официальная федерация тхэквондо.
+              {federation?.name || 'Global Taekwondo Federation'} - {t('footer.aboutText')}
             </p>
           </div>
 
           {/* Navigation */}
           <div className="space-y-4">
-            <h3 className="font-semibold">Навигация</h3>
+            <h3 className="font-semibold">{t('footer.navigation')}</h3>
             <ul className="space-y-2 text-sm">
               <li>
                 <Link href="/competitions" className="text-muted-foreground hover:text-foreground">
-                  Соревнования
+                  {t('nav.competitions')}
                 </Link>
               </li>
               <li>
                 <Link href="/ratings" className="text-muted-foreground hover:text-foreground">
-                  Рейтинг
+                  {t('nav.ratings')}
                 </Link>
               </li>
               <li>
                 <Link href="/clubs" className="text-muted-foreground hover:text-foreground">
-                  Клубы
+                  {t('nav.clubs')}
                 </Link>
               </li>
               <li>
                 <Link href="/news" className="text-muted-foreground hover:text-foreground">
-                  Новости
+                  {t('nav.news')}
                 </Link>
               </li>
             </ul>
@@ -55,7 +59,7 @@ export function Footer({ federation }: FooterProps) {
 
           {/* Contact */}
           <div className="space-y-4">
-            <h3 className="font-semibold">Контакты</h3>
+            <h3 className="font-semibold">{t('footer.contacts')}</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
               {federation?.contactEmail && (
                 <li>
@@ -76,7 +80,7 @@ export function Footer({ federation }: FooterProps) {
 
           {/* Social */}
           <div className="space-y-4">
-            <h3 className="font-semibold">Социальные сети</h3>
+            <h3 className="font-semibold">{t('footer.social')}</h3>
             <div className="flex space-x-4">
               {federation?.instagram && (
                 <a
@@ -113,7 +117,7 @@ export function Footer({ federation }: FooterProps) {
         </div>
 
         <div className="mt-8 pt-8 border-t text-center text-sm text-muted-foreground">
-          <p>&copy; {currentYear} {federation?.name || 'GTF'}. Все права защищены.</p>
+          <p>&copy; {currentYear} {federation?.name || 'GTF'}. {t('section.allRights')}.</p>
         </div>
       </div>
     </footer>

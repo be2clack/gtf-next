@@ -2,10 +2,12 @@ import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/providers/theme-provider'
+import { I18nProvider } from '@/lib/i18n'
 import { Header } from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 import { getCurrentUser } from '@/lib/auth'
 import { getFederationContext } from '@/lib/federation'
+import type { Locale } from '@/types'
 import './globals.css'
 
 const inter = Inter({
@@ -47,6 +49,7 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+        <I18nProvider initialLocale={(locale || 'ru') as Locale}>
         <Header
           user={user ? {
             id: user.id,
@@ -75,6 +78,7 @@ export default async function RootLayout({
           } : null}
         />
         <Toaster position="top-right" richColors />
+        </I18nProvider>
         </ThemeProvider>
       </body>
     </html>
