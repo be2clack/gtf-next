@@ -34,11 +34,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 }
 
+// Official GTF discipline names - DO NOT TRANSLATE
 const disciplineLabels: Record<string, string> = {
   SPARRING: 'Спарринг',
   PATTERNS: 'Туль',
   SPECIAL_TECHNIQUE: 'Спец. техника',
-  POWER_BREAKING: 'Сила удара',
+  POWER_BREAKING: 'Силовое разбивание',
 }
 
 const genderLabels: Record<string, string> = {

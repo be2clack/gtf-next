@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,6 +8,7 @@ import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
 import { Building2, Users, MapPin, Star, Search } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getClubLogoUrl } from '@/lib/utils/images'
 import { headers } from 'next/headers'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -165,7 +167,19 @@ export default async function FederationClubsPage({ params, searchParams }: Page
               <Card key={club.id} className="flex flex-col">
                 <CardHeader>
                   <div className="flex items-center justify-between mb-2">
-                    <Building2 className="h-8 w-8 text-primary" />
+                    {getClubLogoUrl(club.logo) ? (
+                      <div className="w-12 h-12 rounded-full overflow-hidden bg-muted">
+                        <Image
+                          src={getClubLogoUrl(club.logo)!}
+                          alt={title || 'Club'}
+                          width={48}
+                          height={48}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    ) : (
+                      <Building2 className="h-8 w-8 text-primary" />
+                    )}
                     {club.rating > 0 && (
                       <div className="flex items-center gap-1">
                         <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />

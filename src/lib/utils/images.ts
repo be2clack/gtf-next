@@ -7,10 +7,14 @@ const PRODUCTION_URL = 'https://gtf.global'
 
 /**
  * Get the full URL for a federation logo
+ * Fixes incorrect subdomain URLs stored in database
  */
 export function getFederationLogoUrl(logo: string | null | undefined): string | null {
   if (!logo) return null
-  if (logo.startsWith('http')) return logo
+  if (logo.startsWith('http')) {
+    // Fix incorrect subdomain URLs (kg.gtf.global -> gtf.global)
+    return logo.replace(/https?:\/\/\w+\.gtf\.global\/uploads\//, `${PRODUCTION_URL}/uploads/federations/`)
+  }
   return `${PRODUCTION_URL}/uploads/federations/${logo}`
 }
 
