@@ -1,12 +1,13 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { getFederationContext } from '@/lib/federation'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Input } from '@/components/ui/input'
-import { Calendar, MapPin, Users, Filter } from 'lucide-react'
+import { Calendar, MapPin, Users, Trophy } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getCompetitionPhotoUrl } from '@/lib/utils/images'
 import { getT } from '@/lib/translations'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
@@ -100,7 +101,14 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
   const [competitions, total] = await Promise.all([
     prisma.competition.findMany({
       where,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        photo: true,
+        level: true,
+        status: true,
+        startDate: true,
+        endDate: true,
         federation: { select: { code: true, name: true } },
         country: { select: { nameRu: true, nameEn: true, flagEmoji: true } },
         city: { select: { nameRu: true, nameEn: true } },
@@ -137,9 +145,9 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-3xl font-bold">Соревнования</h1>
+          <h1 className="text-3xl font-bold">{t.competitions}</h1>
           <p className="text-muted-foreground mt-1">
-            {total} {total === 1 ? 'соревнование' : 'соревнований'}
+            {total} {t.competitions.toLowerCase()}
           </p>
         </div>
       </div>
@@ -148,7 +156,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
       <div className="flex flex-wrap gap-2 mb-6">
         <Link href="/competitions">
           <Badge variant={!status && !level && !year ? 'default' : 'outline'} className="cursor-pointer">
-            Все
+            {t.all}
           </Badge>
         </Link>
         {Object.entries(statusLabels).filter(([key]) => key !== 'DRAFT').map(([key, label]) => (
@@ -194,9 +202,26 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
             const location = competition.city
               ? (locale === 'en' ? competition.city.nameEn : competition.city.nameRu)
               : null
+            const photoUrl = getCompetitionPhotoUrl(competition.photo)
 
             return (
-              <Card key={competition.id} className="flex flex-col">
+              <Card key={competition.id} className="flex flex-col overflow-hidden">
+                {/* Competition Photo */}
+                {photoUrl ? (
+                  <div className="relative w-full h-48 bg-muted">
+                    <Image
+                      src={photoUrl}
+                      alt={title || ''}
+                      fill
+                      className="object-cover"
+                      unoptimized
+                    />
+                  </div>
+                ) : (
+                  <div className="w-full h-48 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Trophy className="h-16 w-16 text-primary/40" />
+                  </div>
+                )}
                 <CardHeader>
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="outline">{levelLabels[competition.level] || competition.level}</Badge>
@@ -231,14 +256,14 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
                     )}
                     <div className="flex items-center gap-2">
                       <Users className="h-4 w-4" />
-                      {competition._count.registrations} участников
+                      {competition._count.registrations} {t.participants.toLowerCase()}
                     </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="mt-auto">
                   <Button asChild className="w-full">
                     <Link href={`/competitions/${competition.id}`}>
-                      Подробнее
+                      {t.viewDetails}
                     </Link>
                   </Button>
                 </CardContent>
@@ -249,7 +274,8 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
       ) : (
         <Card>
           <CardContent className="py-12 text-center">
-            <p className="text-muted-foreground">Соревнования не найдены</p>
+            <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+            <p className="text-muted-foreground">{t.competitionsNotFound}</p>
           </CardContent>
         </Card>
       )}
@@ -260,7 +286,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
           {page > 1 && (
             <Button asChild variant="outline">
               <Link href={`/competitions?page=${page - 1}${status ? `&status=${status}` : ''}${level ? `&level=${level}` : ''}${year ? `&year=${year}` : ''}`}>
-                Назад
+                {t.back}
               </Link>
             </Button>
           )}
@@ -270,7 +296,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
           {page < totalPages && (
             <Button asChild variant="outline">
               <Link href={`/competitions?page=${page + 1}${status ? `&status=${status}` : ''}${level ? `&level=${level}` : ''}${year ? `&year=${year}` : ''}`}>
-                Вперёд
+                {t.forward}
               </Link>
             </Button>
           )}

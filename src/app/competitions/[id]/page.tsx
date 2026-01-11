@@ -1,13 +1,16 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { getFederationContext } from '@/lib/federation'
 import prisma from '@/lib/prisma'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { Calendar, MapPin, Users, Trophy, Clock, FileText, Building2 } from 'lucide-react'
+import { Calendar, MapPin, Users, Trophy, Clock, Building2 } from 'lucide-react'
 import { getTranslation } from '@/lib/utils/multilingual'
+import { getCompetitionPhotoUrl } from '@/lib/utils/images'
+import { getT } from '@/lib/translations'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
 
@@ -31,30 +34,44 @@ export async function generateMetadata({ params }: CompetitionPageProps): Promis
   }
 }
 
-const statusLabels: Record<string, string> = {
-  DRAFT: 'Черновик',
-  ANNOUNCED: 'Анонсировано',
-  REGISTRATION_OPEN: 'Регистрация открыта',
-  REGISTRATION_CLOSED: 'Регистрация закрыта',
-  IN_PROGRESS: 'Идёт',
-  COMPLETED: 'Завершено',
-  CANCELLED: 'Отменено',
-}
-
-const levelLabels: Record<string, string> = {
-  CLUB: 'Клубные',
-  REGIONAL: 'Региональные',
-  NATIONAL: 'Национальные',
-  INTERNATIONAL: 'Международные',
-}
-
 export default async function CompetitionPage({ params }: CompetitionPageProps) {
   const { id } = await params
   const { locale } = await getFederationContext()
+  const t = getT(locale || 'ru')
+
+  const statusLabels: Record<string, string> = {
+    DRAFT: t.statusDraft,
+    ANNOUNCED: t.statusAnnounced,
+    REGISTRATION_OPEN: t.statusRegistrationOpen,
+    REGISTRATION_CLOSED: t.statusRegistrationClosed,
+    WEIGH_IN: t.statusWeighIn,
+    DRAW_PENDING: t.statusDrawPending,
+    DRAW_COMPLETED: t.statusDrawCompleted,
+    IN_PROGRESS: t.statusInProgress,
+    COMPLETED: t.statusCompleted,
+    CANCELLED: t.statusCancelled,
+  }
+
+  const levelLabels: Record<string, string> = {
+    CLUB: t.clubLevel,
+    REGIONAL: t.regionalLevel,
+    NATIONAL: t.nationalLevel,
+    INTERNATIONAL: t.internationalLevel,
+  }
 
   const competition = await prisma.competition.findUnique({
     where: { id: parseInt(id), deletedAt: null },
-    include: {
+    select: {
+      id: true,
+      title: true,
+      description: true,
+      photo: true,
+      level: true,
+      status: true,
+      startDate: true,
+      endDate: true,
+      venue: true,
+      registrationDeadline: true,
       federation: { select: { code: true, name: true } },
       country: { select: { nameRu: true, nameEn: true, flagEmoji: true } },
       region: { select: { nameRu: true, nameEn: true } },
@@ -100,6 +117,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
   const location = competition.city
     ? (locale === 'en' ? competition.city.nameEn : competition.city.nameRu)
     : null
+  const photoUrl = getCompetitionPhotoUrl(competition.photo)
 
   const canRegister = competition.status === 'REGISTRATION_OPEN'
 
@@ -107,12 +125,25 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
     <div className="container py-8">
       {/* Breadcrumb */}
       <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6">
-        <Link href="/" className="hover:text-foreground">Главная</Link>
+        <Link href="/" className="hover:text-foreground">{t.home}</Link>
         <span>/</span>
-        <Link href="/competitions" className="hover:text-foreground">Соревнования</Link>
+        <Link href="/competitions" className="hover:text-foreground">{t.competitions}</Link>
         <span>/</span>
         <span className="text-foreground">{title}</span>
       </nav>
+
+      {/* Competition Photo Banner */}
+      {photoUrl && (
+        <div className="relative w-full h-64 md:h-80 rounded-xl overflow-hidden mb-8 bg-muted">
+          <Image
+            src={photoUrl}
+            alt={title || ''}
+            fill
+            className="object-cover"
+            unoptimized
+          />
+        </div>
+      )}
 
       {/* Header */}
       <div className="grid lg:grid-cols-3 gap-8">
@@ -135,7 +166,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                 <div className="flex items-start gap-3">
                   <Calendar className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">Дата проведения</p>
+                    <p className="font-medium">{t.eventDate}</p>
                     <p className="text-muted-foreground">
                       {new Date(competition.startDate).toLocaleDateString(locale, {
                         day: 'numeric',
@@ -164,7 +195,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                   <div className="flex items-start gap-3">
                     <MapPin className="h-5 w-5 text-primary mt-0.5" />
                     <div>
-                      <p className="font-medium">Место проведения</p>
+                      <p className="font-medium">{t.venue}</p>
                       <p className="text-muted-foreground">
                         {competition.country?.flagEmoji} {location}
                         {competition.region && `, ${locale === 'en' ? competition.region.nameEn : competition.region.nameRu}`}
@@ -183,9 +214,9 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                 <div className="flex items-start gap-3">
                   <Users className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">Участники</p>
+                    <p className="font-medium">{t.participants}</p>
                     <p className="text-muted-foreground">
-                      {competition._count.registrations} зарегистрировано
+                      {competition._count.registrations} {t.registered.toLowerCase()}
                     </p>
                   </div>
                 </div>
@@ -197,9 +228,9 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                 <div className="flex items-start gap-3">
                   <Trophy className="h-5 w-5 text-primary mt-0.5" />
                   <div>
-                    <p className="font-medium">Дисциплины</p>
+                    <p className="font-medium">{t.disciplines}</p>
                     <p className="text-muted-foreground">
-                      {competition._count.categories} категорий
+                      {competition._count.categories} {t.categories.toLowerCase()}
                     </p>
                   </div>
                 </div>
@@ -210,11 +241,11 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
           {/* Tabs */}
           <Tabs defaultValue="info" className="space-y-4">
             <TabsList>
-              <TabsTrigger value="info">Информация</TabsTrigger>
-              <TabsTrigger value="categories">Категории</TabsTrigger>
-              <TabsTrigger value="participants">Участники</TabsTrigger>
+              <TabsTrigger value="info">{t.information}</TabsTrigger>
+              <TabsTrigger value="categories">{t.categories}</TabsTrigger>
+              <TabsTrigger value="participants">{t.participants}</TabsTrigger>
               {competition.status === 'COMPLETED' && (
-                <TabsTrigger value="results">Результаты</TabsTrigger>
+                <TabsTrigger value="results">{t.results}</TabsTrigger>
               )}
             </TabsList>
 
@@ -224,12 +255,12 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                   <CardHeader>
                     <CardTitle className="flex items-center gap-2">
                       <Clock className="h-5 w-5" />
-                      Сроки регистрации
+                      {t.registrationDeadline}
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p>
-                      До {new Date(competition.registrationDeadline).toLocaleDateString(locale, {
+                      {t.until} {new Date(competition.registrationDeadline).toLocaleDateString(locale, {
                         day: 'numeric',
                         month: 'long',
                         year: 'numeric',
@@ -245,7 +276,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
             <TabsContent value="categories">
               <Card>
                 <CardHeader>
-                  <CardTitle>Категории соревнований</CardTitle>
+                  <CardTitle>{t.competitionCategories}</CardTitle>
                 </CardHeader>
                 <CardContent>
                   {competition.categories.length > 0 ? (
@@ -256,18 +287,18 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                           className="p-3 rounded-lg border bg-muted/50"
                         >
                           <p className="font-medium">
-                            {cc.name || (cc.discipline ? (locale === 'en' && cc.discipline.nameEn ? cc.discipline.nameEn : cc.discipline.name) : 'Категория')}
+                            {cc.name || (cc.discipline ? (locale === 'en' && cc.discipline.nameEn ? cc.discipline.nameEn : cc.discipline.name) : t.category)}
                           </p>
                           <p className="text-sm text-muted-foreground">
-                            {cc.gender === 'MALE' ? 'М' : cc.gender === 'FEMALE' ? 'Ж' : 'Смеш'}
-                            {cc.ageCategory && ` / ${cc.ageCategory.minAge}-${cc.ageCategory.maxAge || '+'} лет`}
-                            {cc.weightCategory && ` / ${cc.weightCategory.minWeight}-${cc.weightCategory.maxWeight || '+'} кг`}
+                            {cc.gender === 'MALE' ? t.male : cc.gender === 'FEMALE' ? t.female : t.mixed}
+                            {cc.ageCategory && ` / ${cc.ageCategory.minAge}-${cc.ageCategory.maxAge || '+'} ${t.years}`}
+                            {cc.weightCategory && ` / ${cc.weightCategory.minWeight}-${cc.weightCategory.maxWeight || '+'} ${t.kg}`}
                           </p>
                         </div>
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground">Категории ещё не добавлены</p>
+                    <p className="text-muted-foreground">{t.categoriesNotAdded}</p>
                   )}
                 </CardContent>
               </Card>
@@ -276,9 +307,9 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
             <TabsContent value="participants">
               <Card>
                 <CardHeader>
-                  <CardTitle>Зарегистрированные участники</CardTitle>
+                  <CardTitle>{t.registeredParticipants}</CardTitle>
                   <CardDescription>
-                    Показаны первые 20 участников
+                    {t.showingFirst20}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -307,7 +338,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                       ))}
                     </div>
                   ) : (
-                    <p className="text-muted-foreground">Пока нет зарегистрированных участников</p>
+                    <p className="text-muted-foreground">{t.noRegisteredParticipants}</p>
                   )}
                 </CardContent>
               </Card>
@@ -319,7 +350,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
                   <CardContent className="py-12 text-center">
                     <Trophy className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
                     <p className="text-muted-foreground">
-                      Результаты будут доступны после обработки
+                      {t.resultsAfterProcessing}
                     </p>
                   </CardContent>
                 </Card>
@@ -332,31 +363,31 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Регистрация</CardTitle>
+              <CardTitle>{t.registration}</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               {canRegister ? (
                 <>
                   <p className="text-sm text-muted-foreground">
-                    Регистрация открыта до {competition.registrationDeadline
+                    {t.registrationOpenUntil} {competition.registrationDeadline
                       ? new Date(competition.registrationDeadline).toLocaleDateString(locale)
-                      : 'даты начала соревнований'}
+                      : t.competitionStartDate}
                   </p>
                   <Button asChild className="w-full">
                     <Link href={`/competitions/${competition.id}/register`}>
-                      Зарегистрироваться
+                      {t.register}
                     </Link>
                   </Button>
                 </>
               ) : (
                 <p className="text-sm text-muted-foreground">
                   {competition.status === 'COMPLETED'
-                    ? 'Соревнование завершено'
+                    ? t.competitionCompleted
                     : competition.status === 'CANCELLED'
-                    ? 'Соревнование отменено'
+                    ? t.competitionCancelled
                     : competition.status === 'REGISTRATION_CLOSED'
-                    ? 'Регистрация закрыта'
-                    : 'Регистрация ещё не открыта'}
+                    ? t.registrationClosed
+                    : t.registrationNotOpen}
                 </p>
               )}
             </CardContent>
@@ -365,7 +396,7 @@ export default async function CompetitionPage({ params }: CompetitionPageProps) 
           {competition.federation && (
             <Card>
               <CardHeader>
-                <CardTitle>Организатор</CardTitle>
+                <CardTitle>{t.organizer}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="font-medium">{competition.federation.name}</p>

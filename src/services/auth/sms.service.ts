@@ -1,24 +1,83 @@
 import prisma from '@/lib/prisma'
+import { getSmsSettingsByPhone, type SmsSettings } from '@/services/settings/settings.service'
 
 interface SmsSendResult {
   success: boolean
   error?: string
 }
 
+// SMS провайдеры
+type SmsProvider = 'nikita' | 'none'
+
+interface SmsProviderConfig {
+  provider: SmsProvider
+  apiKey: string | null
+  apiUrl: string
+  sender: string
+}
+
+/**
+ * Получить конфигурацию SMS провайдера из БД по номеру телефона
+ */
+async function getSmsProviderConfig(phone: string): Promise<SmsProviderConfig> {
+  // Получаем настройки из БД
+  const result = await getSmsSettingsByPhone(phone)
+
+  if (result && result.settings.enabled && result.settings.apiKey) {
+    return {
+      provider: (result.settings.provider as SmsProvider) || 'nikita',
+      apiKey: result.settings.apiKey,
+      apiUrl: result.settings.apiUrl || 'https://smspro.nikita.kg/api/message',
+      sender: result.settings.sender || 'GTF',
+    }
+  }
+
+  // Fallback на env переменные для обратной совместимости
+  const normalized = phone.replace(/\D/g, '')
+
+  if (normalized.startsWith('996')) {
+    const envApiKey = process.env.SMS_NIKITA_API_KEY
+    if (envApiKey) {
+      return {
+        provider: 'nikita',
+        apiKey: envApiKey,
+        apiUrl: process.env.SMS_NIKITA_API_URL || 'https://smspro.nikita.kg/api/message',
+        sender: process.env.SMS_NIKITA_SENDER || 'GTF',
+      }
+    }
+  }
+
+  return {
+    provider: 'none',
+    apiKey: null,
+    apiUrl: '',
+    sender: '',
+  }
+}
+
 /**
  * Send PIN via SMS
- * Using Nikita SMS gateway (or similar)
+ * Настройки берутся из БД для каждой федерации
  */
 export async function sendPinViaSms(
   phone: string,
   pin: string,
   locale: string = 'ru'
 ): Promise<SmsSendResult> {
-  const apiKey = process.env.SMS_API_KEY
-  const senderId = process.env.SMS_SENDER_ID || 'GTF'
+  const providerConfig = await getSmsProviderConfig(phone)
 
-  if (!apiKey) {
-    console.error('SMS_API_KEY not configured')
+  // Провайдер не настроен для данной страны
+  if (providerConfig.provider === 'none') {
+    console.log(`SMS not configured for phone: ${phone}`)
+    return {
+      success: false,
+      error: 'SMS не настроен для вашей страны. Используйте Telegram.'
+    }
+  }
+
+  // API ключ не настроен
+  if (!providerConfig.apiKey) {
+    console.error(`SMS API key not configured for provider: ${providerConfig.provider}`)
     return { success: false, error: 'SMS service not configured' }
   }
 
@@ -32,17 +91,31 @@ export async function sendPinViaSms(
 
   const message = messages[locale] || messages.ru
 
+  // Отправка через нужного провайдера
+  if (providerConfig.provider === 'nikita') {
+    return sendViaNikita(phone, message, providerConfig)
+  }
+
+  return { success: false, error: 'Unknown SMS provider' }
+}
+
+/**
+ * Отправка SMS через Nikita (Кыргызстан)
+ */
+async function sendViaNikita(
+  phone: string,
+  message: string,
+  config: SmsProviderConfig
+): Promise<SmsSendResult> {
   try {
-    // Example with Nikita SMS API
-    // Replace with your actual SMS gateway
-    const response = await fetch('https://smspro.nikita.kg/api/message', {
+    const response = await fetch(config.apiUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${config.apiKey}`,
       },
       body: JSON.stringify({
-        sender: senderId,
+        sender: config.sender,
         recipient: normalizePhoneNumber(phone),
         message,
       }),
@@ -50,7 +123,7 @@ export async function sendPinViaSms(
 
     if (!response.ok) {
       const error = await response.text()
-      console.error('SMS API error:', error)
+      console.error('SMS Nikita API error:', error)
       return { success: false, error: 'Failed to send SMS' }
     }
 
@@ -59,7 +132,7 @@ export async function sendPinViaSms(
 
     return { success: true }
   } catch (error) {
-    console.error('SMS send error:', error)
+    console.error('SMS Nikita send error:', error)
     return { success: false, error: 'Failed to connect to SMS service' }
   }
 }
