@@ -786,14 +786,28 @@ async function migrateAgeCategories(batchSize: number, offset: number): Promise<
     name_en: string
     min_age: number
     max_age: number
+    gender: string
+    is_active: number
     created_at: string
     updated_at: string
   }>(`SELECT * FROM age_categories ORDER BY id LIMIT ${batchSize} OFFSET ${offset}`)
 
   let migrated = 0
+  type Gender = 'MALE' | 'FEMALE' | 'MIXED'
+  const genderMap: Record<string, Gender> = {
+    'male': 'MALE',
+    'm': 'MALE',
+    'female': 'FEMALE',
+    'f': 'FEMALE',
+    'mixed': 'MIXED'
+  }
+
   for (const row of rows) {
     try {
       const code = row.code || `age_${row.id}`
+      const gender: Gender = genderMap[row.gender?.toLowerCase()] || 'MIXED'
+      const maxAge = row.max_age ? parseInt(String(row.max_age)) : 99
+
       await prisma.ageCategory.upsert({
         where: { id: row.id },
         create: {
@@ -802,13 +816,18 @@ async function migrateAgeCategories(batchSize: number, offset: number): Promise<
           nameRu: row.name_ru || undefined,
           nameEn: row.name_en || undefined,
           minAge: row.min_age || 0,
-          maxAge: row.max_age || 99,
+          maxAge,
+          gender,
+          isActive: row.is_active === 1,
           createdAt: toDate(row.created_at) || new Date(),
           updatedAt: toDate(row.updated_at) || new Date(),
         },
         update: {
           nameRu: row.name_ru || undefined,
           nameEn: row.name_en || undefined,
+          minAge: row.min_age || 0,
+          maxAge,
+          gender,
         }
       })
       migrated++

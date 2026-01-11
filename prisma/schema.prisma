@@ -1002,7 +1002,7 @@ model Discipline {
 
 model AgeCategory {
   id        Int      @id @default(autoincrement())
-  code      String   @unique @db.VarChar(20)
+  code      String   @unique @db.VarChar(50)
   nameRu    String?  @map("name_ru") @db.VarChar(100)
   nameEn    String?  @map("name_en") @db.VarChar(100)
   minAge    Int      @map("min_age")
