@@ -58,6 +58,7 @@ export default async function RootLayout({
             id: user.id,
             name: user.name,
             type: user.type,
+            federationId: user.federationId,
             federation: federation ? { code: federation.code, name: federation.name } : null,
           } : null}
           federation={federation ? {

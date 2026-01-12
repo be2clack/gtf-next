@@ -18,6 +18,9 @@ import {
   ChevronRight,
   Menu,
   Database,
+  Award,
+  TrendingUp,
+  Handshake,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -42,10 +45,13 @@ const navigation = [
   { name: 'Спортсмены', href: '/admin/sportsmen', icon: Users },
   { name: 'Клубы', href: '/admin/clubs', icon: Building2 },
   { name: 'Тренеры', href: '/admin/trainers', icon: UserCog },
-  { name: 'Соревнования', href: '/admin/competitions', icon: Trophy },
   { name: 'Судьи', href: '/admin/judges', icon: Medal },
+  { name: 'Соревнования', href: '/admin/competitions', icon: Trophy },
   { name: 'Взвешивание', href: '/admin/weighin', icon: Scale },
+  { name: 'Аттестации', href: '/admin/attestations', icon: Award },
+  { name: 'Рейтинги', href: '/admin/ratings', icon: TrendingUp },
   { name: 'Новости', href: '/admin/news', icon: Newspaper },
+  { name: 'Партнёры', href: '/admin/partners', icon: Handshake },
   { name: 'Миграция', href: '/admin/migration', icon: Database },
   { name: 'Настройки', href: '/admin/settings', icon: Settings },
 ]

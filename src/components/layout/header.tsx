@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
-import { Menu, User, LogOut, Settings, Trophy, Building2, Globe } from 'lucide-react'
+import { Menu, User, LogOut, Settings, Trophy, Building2, Globe, Shield } from 'lucide-react'
 import { ThemeToggle } from '@/components/ui/theme-toggle'
 import { cn } from '@/lib/utils'
 import { useI18n } from '@/lib/i18n'
@@ -23,6 +23,7 @@ interface HeaderProps {
     id: number
     name: string
     type: string
+    federationId?: number | null
     federation?: {
       code: string
       name: string
@@ -237,6 +238,14 @@ export function Header({ user, federation, urlPrefix = '' }: HeaderProps) {
                     {t('nav.cabinet')}
                   </Link>
                 </DropdownMenuItem>
+                {user.type === 'ADMIN' && user.federationId === null && (
+                  <DropdownMenuItem asChild>
+                    <Link href="/superadmin">
+                      <Shield className="mr-2 h-4 w-4" />
+                      Суперадминка
+                    </Link>
+                  </DropdownMenuItem>
+                )}
                 {user.type === 'ADMIN' && (
                   <DropdownMenuItem asChild>
                     <Link href="/admin">

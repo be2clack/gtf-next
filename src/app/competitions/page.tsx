@@ -31,10 +31,31 @@ import { getCompetitionPhotoUrl } from '@/lib/utils/images'
 import { getT } from '@/lib/translations'
 import type { Locale } from '@/types'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 
-export const metadata: Metadata = {
-  title: 'Соревнования',
-  description: 'Список соревнований по Таеквон-До ИТФ',
+export async function generateMetadata(): Promise<Metadata> {
+  // Get locale from headers (set by middleware)
+  const headersList = await headers()
+  const locale = headersList.get('x-locale') || 'ru'
+
+  const titles: Record<string, string> = {
+    ru: 'Соревнования',
+    en: 'Competitions',
+    ky: 'Мелдештер',
+    kk: 'Жарыстар',
+  }
+
+  const descriptions: Record<string, string> = {
+    ru: 'Список соревнований по Таеквон-До ИТФ',
+    en: 'Taekwon-Do ITF Competitions',
+    ky: 'Таеквон-До ИТФ боюнча мелдештердин тизмеси',
+    kk: 'Таеквон-До ИТФ бойынша жарыстар тізімі',
+  }
+
+  return {
+    title: titles[locale] || titles.ru,
+    description: descriptions[locale] || descriptions.ru,
+  }
 }
 
 interface CompetitionsPageProps {
@@ -216,7 +237,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
               </div>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight">{t.competitions}</h1>
               <p className="text-muted-foreground mt-2 text-lg">
-                {t.competitionsDescription || 'Официальные соревнования по Таеквон-До ИТФ'}
+                {t.competitionsDescription}
               </p>
             </div>
 
@@ -225,7 +246,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
               <div className="bg-card rounded-xl p-4 border shadow-sm min-w-[120px]">
                 <div className="flex items-center gap-2 text-muted-foreground text-sm">
                   <CalendarDays className="h-4 w-4" />
-                  {t.total || 'Всего'}
+                  {t.total}
                 </div>
                 <p className="text-3xl font-bold mt-1">{total}</p>
               </div>
@@ -233,7 +254,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
                 <div className="bg-green-50 dark:bg-green-900/20 rounded-xl p-4 border border-green-200 dark:border-green-800 min-w-[120px]">
                   <div className="flex items-center gap-2 text-green-700 dark:text-green-400 text-sm">
                     <Flame className="h-4 w-4" />
-                    {t.open || 'Открыта'}
+                    {t.open}
                   </div>
                   <p className="text-3xl font-bold text-green-700 dark:text-green-400 mt-1">{upcomingCount}</p>
                 </div>
@@ -242,7 +263,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
                 <div className="bg-red-50 dark:bg-red-900/20 rounded-xl p-4 border border-red-200 dark:border-red-800 min-w-[120px]">
                   <div className="flex items-center gap-2 text-red-700 dark:text-red-400 text-sm">
                     <Star className="h-4 w-4" />
-                    {t.live || 'Live'}
+                    {t.live}
                   </div>
                   <p className="text-3xl font-bold text-red-700 dark:text-red-400 mt-1">{activeCount}</p>
                 </div>
@@ -259,7 +280,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Filter className="h-4 w-4" />
-              {t.level || 'Уровень'}:
+              {t.level}:
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href="/competitions">
@@ -290,7 +311,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Clock className="h-4 w-4" />
-              {t.status || 'Статус'}:
+              {t.status}:
             </div>
             <div className="flex flex-wrap gap-2">
               <Link href={`/competitions${level ? `?level=${level}` : ''}${year ? `${level ? '&' : '?'}year=${year}` : ''}`}>
@@ -322,7 +343,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
                 <Calendar className="h-4 w-4" />
-                {t.year || 'Год'}:
+                {t.year}:
               </div>
               <div className="flex flex-wrap gap-2">
                 {years.slice(0, 6).map((y) => (
@@ -454,7 +475,7 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
                       className={`w-full ${isOpen ? 'bg-green-600 hover:bg-green-700' : ''} ${isActive ? 'bg-red-600 hover:bg-red-700' : ''}`}
                     >
                       <Link href={`/competitions/${competition.id}`}>
-                        {isOpen ? (t.register || 'Регистрация') : isActive ? (t.viewLive || 'Смотреть') : t.viewDetails}
+                        {isOpen ? t.register : isActive ? t.viewLive : t.viewDetails}
                       </Link>
                     </Button>
                   </CardContent>
@@ -470,11 +491,11 @@ export default async function CompetitionsPage({ searchParams }: CompetitionsPag
               </div>
               <h3 className="text-lg font-semibold mb-2">{t.competitionsNotFound}</h3>
               <p className="text-muted-foreground max-w-md mx-auto">
-                {t.noCompetitionsDescription || 'Соревнований с выбранными фильтрами не найдено. Попробуйте изменить параметры поиска.'}
+                {t.noCompetitionsDescription}
               </p>
               <Button asChild variant="outline" className="mt-4">
                 <Link href="/competitions">
-                  {t.resetFilters || 'Сбросить фильтры'}
+                  {t.resetFilters}
                 </Link>
               </Button>
             </CardContent>
