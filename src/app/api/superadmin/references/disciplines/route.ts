@@ -25,14 +25,40 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, name, sortOrder, isActive } = body
+    const { code, name, nameRu, nameEn, description, sortOrder, isActive, type, hasWeightCategories, hasBeltCategories, teamSize } = body
+
+    if (!code) {
+      return NextResponse.json(
+        { error: 'Код дисциплины обязателен' },
+        { status: 400 }
+      )
+    }
+
+    // Check if code already exists
+    const existing = await prisma.discipline.findUnique({
+      where: { code },
+    })
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Дисциплина с таким кодом уже существует' },
+        { status: 400 }
+      )
+    }
 
     const discipline = await prisma.discipline.create({
       data: {
         code,
-        name,
+        name: nameRu || name || code, // Use nameRu or fallback to name or code
+        nameRu: nameRu || name || null,
+        nameEn: nameEn || null,
+        description: description || null,
         sortOrder: sortOrder || 0,
         isActive: isActive !== false,
+        type: type || 'MASSOGI',
+        hasWeightCategories: hasWeightCategories !== false,
+        hasBeltCategories: hasBeltCategories !== false,
+        teamSize: teamSize || null,
       },
     })
 

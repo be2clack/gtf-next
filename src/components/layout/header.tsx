@@ -238,7 +238,7 @@ export function Header({ user, federation, urlPrefix = '' }: HeaderProps) {
                     {t('nav.cabinet')}
                   </Link>
                 </DropdownMenuItem>
-                {user.type === 'ADMIN' && user.federationId === null && (
+                {user.type === 'ADMIN' && !user.federationId && (
                   <DropdownMenuItem asChild>
                     <Link href="/superadmin">
                       <Shield className="mr-2 h-4 w-4" />
@@ -250,7 +250,7 @@ export function Header({ user, federation, urlPrefix = '' }: HeaderProps) {
                   <DropdownMenuItem asChild>
                     <Link href="/admin">
                       <Settings className="mr-2 h-4 w-4" />
-                      {t('nav.admin')}
+                      Админка федерации
                     </Link>
                   </DropdownMenuItem>
                 )}

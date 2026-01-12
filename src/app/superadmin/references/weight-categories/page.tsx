@@ -2,13 +2,24 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import prisma from '@/lib/prisma'
-import { Plus, Edit, Trash2 } from 'lucide-react'
+import { Plus, Edit } from 'lucide-react'
 import Link from 'next/link'
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 async function getWeightCategories() {
   return prisma.weightCategory.findMany({
     orderBy: [{ gender: 'asc' }, { minWeight: 'asc' }],
     include: {
+      discipline: {
+        select: { id: true, code: true, nameRu: true, name: true },
+      },
       _count: {
         select: {
           competitionCategories: true,
@@ -18,64 +29,25 @@ async function getWeightCategories() {
   })
 }
 
+const genderLabels: Record<string, string> = {
+  MALE: 'М',
+  FEMALE: 'Ж',
+}
+
+const genderColors: Record<string, string> = {
+  MALE: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
+  FEMALE: 'bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-300',
+}
+
 export default async function WeightCategoriesPage() {
   const categories = await getWeightCategories()
 
-  const maleCategories = categories.filter((c) => c.gender === 'MALE')
-  const femaleCategories = categories.filter((c) => c.gender === 'FEMALE')
-
-  const CategoryList = ({ items, title }: { items: typeof categories; title: string }) => (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="divide-y">
-          {items.map((category) => (
-            <div
-              key={category.id}
-              className="flex items-center justify-between py-4"
-            >
-              <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-green-500/10 font-bold text-green-500 text-sm">
-                  {category.maxWeight ? `${category.minWeight}-${category.maxWeight}` : `${category.minWeight}+`}
-                </div>
-                <div>
-                  <p className="font-medium">{category.name}</p>
-                  <p className="text-sm text-muted-foreground">
-                    {category.code} |
-                    {category.maxWeight
-                      ? ` ${category.minWeight}-${category.maxWeight} кг`
-                      : ` свыше ${category.minWeight} кг`
-                    } |
-                    Используется в {category._count.competitionCategories} категориях
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <Badge variant={category.isActive ? 'default' : 'secondary'}>
-                  {category.isActive ? 'Активна' : 'Неактивна'}
-                </Badge>
-                <Button variant="ghost" size="icon" asChild>
-                  <Link href={`/superadmin/references/weight-categories/${category.id}/edit`}>
-                    <Edit className="h-4 w-4" />
-                  </Link>
-                </Button>
-                <Button variant="ghost" size="icon">
-                  <Trash2 className="h-4 w-4 text-destructive" />
-                </Button>
-              </div>
-            </div>
-          ))}
-          {items.length === 0 && (
-            <div className="text-center py-8">
-              <p className="text-muted-foreground">Нет весовых категорий</p>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  )
+  const formatWeight = (minWeight: number, maxWeight: number) => {
+    if (maxWeight === 0 || maxWeight >= 999) {
+      return `${minWeight}+ кг`
+    }
+    return `${minWeight}-${maxWeight} кг`
+  }
 
   return (
     <div className="space-y-6">
@@ -94,10 +66,74 @@ export default async function WeightCategoriesPage() {
         </Button>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
-        <CategoryList items={maleCategories} title="Мужские категории" />
-        <CategoryList items={femaleCategories} title="Женские категории" />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Список весовых категорий</CardTitle>
+          <CardDescription>
+            Весовые категории определяют допустимый вес участников
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Название</TableHead>
+                <TableHead>Дисциплина</TableHead>
+                <TableHead>Пол</TableHead>
+                <TableHead>Вес</TableHead>
+                <TableHead>Статус</TableHead>
+                <TableHead className="text-right">Действия</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {categories.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell className="font-medium">
+                    {category.name}
+                  </TableCell>
+                  <TableCell>
+                    {category.discipline ? (
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300">
+                        {category.discipline.nameRu || category.discipline.name}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">-</span>
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-xs font-medium ${genderColors[category.gender] || 'bg-gray-100 text-gray-800'}`}>
+                      {genderLabels[category.gender] || category.gender}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300">
+                      {formatWeight(category.minWeight, category.maxWeight)}
+                    </span>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={category.isActive ? 'default' : 'secondary'}>
+                      {category.isActive ? 'Активна' : 'Неактивна'}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button variant="ghost" size="sm" asChild>
+                      <Link href={`/superadmin/references/weight-categories/${category.id}/edit`}>
+                        <Edit className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+
+          {categories.length === 0 && (
+            <div className="text-center py-8">
+              <p className="text-muted-foreground">Нет весовых категорий</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }

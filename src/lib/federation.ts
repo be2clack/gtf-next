@@ -38,10 +38,15 @@ export async function getFederationContext(): Promise<FederationContext> {
     },
   })
 
+  // User's locale preference (from cookie) takes priority over federation's default
+  // Only use federation's primaryLanguage as fallback if no user preference
+  const userLocale = headersList.get('x-locale')
+  const finalLocale = userLocale || federation?.primaryLanguage || 'ru'
+
   return {
     federation,
     isGlobal: !federation,
-    locale: federation?.primaryLanguage || locale,
+    locale: finalLocale,
   }
 }
 

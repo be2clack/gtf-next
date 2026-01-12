@@ -61,17 +61,68 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
   try {
     const body = await request.json()
-    const { name, countryId, currency, timezone, domain, status } = body
+    const {
+      name,
+      nameEn,
+      countryId,
+      currency,
+      timezone,
+      domain,
+      customDomain,
+      status,
+      primaryLanguage,
+      languages,
+      contactEmail,
+      contactPhone,
+      description,
+      siteTitle,
+      metaDescription,
+      aboutText,
+      address,
+      workingHours,
+      instagram,
+      facebook,
+      youtube,
+      phones,
+      logo,
+      heroBackground,
+      settings,
+    } = body
+
+    // Build update data - only include fields that are present
+    const updateData: Record<string, unknown> = {}
+
+    if (name !== undefined) updateData.name = name
+    if (nameEn !== undefined) updateData.nameEn = nameEn
+    if (countryId !== undefined) updateData.countryId = parseInt(countryId)
+    if (currency !== undefined) updateData.currency = currency
+    if (timezone !== undefined) updateData.timezone = timezone
+    if (domain !== undefined) updateData.domain = domain
+    if (customDomain !== undefined) updateData.customDomain = customDomain
+    if (status !== undefined) updateData.status = status
+    if (primaryLanguage !== undefined) updateData.primaryLanguage = primaryLanguage
+    if (languages !== undefined) updateData.languages = languages
+    if (contactEmail !== undefined) updateData.contactEmail = contactEmail
+    if (contactPhone !== undefined) updateData.contactPhone = contactPhone
+    if (description !== undefined) updateData.description = description
+    if (siteTitle !== undefined) updateData.siteTitle = siteTitle
+    if (metaDescription !== undefined) updateData.metaDescription = metaDescription
+    if (aboutText !== undefined) updateData.aboutText = aboutText
+    if (address !== undefined) updateData.address = address
+    if (workingHours !== undefined) updateData.workingHours = workingHours
+    if (instagram !== undefined) updateData.instagram = instagram
+    if (facebook !== undefined) updateData.facebook = facebook
+    if (youtube !== undefined) updateData.youtube = youtube
+    if (phones !== undefined) updateData.phones = phones
+    if (logo !== undefined) updateData.logo = logo
+    if (heroBackground !== undefined) updateData.heroBackground = heroBackground
+    if (settings !== undefined) updateData.settings = settings
 
     const federation = await prisma.federation.update({
       where: { id: parseInt(id) },
-      data: {
-        name,
-        countryId: countryId ? parseInt(countryId) : undefined,
-        currency,
-        timezone,
-        domain,
-        status,
+      data: updateData,
+      include: {
+        country: { select: { id: true, code: true, nameRu: true, nameEn: true } },
       },
     })
 

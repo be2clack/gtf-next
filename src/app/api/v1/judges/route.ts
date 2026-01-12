@@ -2,6 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import type { Locale } from '@/types'
+import path from 'path'
+import fs from 'fs/promises'
+
+// Helper function to save uploaded file
+async function saveUploadedFile(file: File, subdir: string): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  const buffer = Buffer.from(bytes)
+
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', subdir)
+  await fs.mkdir(uploadDir, { recursive: true })
+
+  const ext = file.name.split('.').pop() || 'jpg'
+  const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`
+  const filepath = path.join(uploadDir, filename)
+
+  await fs.writeFile(filepath, buffer)
+  return filename
+}
 
 // GET /api/v1/judges - List judges
 export async function GET(request: NextRequest) {
@@ -126,7 +144,25 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const contentType = request.headers.get('content-type') || ''
+    let body: Record<string, unknown> = {}
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+
+      for (const [key, value] of formData.entries()) {
+        if (key === 'photo' && value instanceof File && value.size > 0) {
+          body.photo = await saveUploadedFile(value, 'judges')
+        } else if (key === 'disciplineIds[]' || key === 'disciplineIds') {
+          if (!body.disciplineIds) body.disciplineIds = []
+          ;(body.disciplineIds as string[]).push(value as string)
+        } else if (value !== '' && value !== 'undefined' && value !== 'null') {
+          body[key] = value
+        }
+      }
+    } else {
+      body = await request.json()
+    }
 
     const {
       firstName,
@@ -147,8 +183,10 @@ export async function POST(request: NextRequest) {
       experienceYears,
       isInternational,
       disciplineIds,
+      telegramChatId,
+      isActive,
       federationId: bodyFederationId,
-    } = body
+    } = body as Record<string, unknown>
 
     // Validate required fields
     if (!firstName || !lastName) {
@@ -158,30 +196,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const federationId = bodyFederationId || user.federationId
+    const federationId = (bodyFederationId as number) || user.federationId
 
     // Create judge
     const judge = await prisma.judge.create({
       data: {
         federationId,
-        firstName,
-        lastName,
-        patronymic,
-        phone,
-        email,
-        photo,
-        countryId: countryId ? parseInt(countryId) : null,
-        regionId: regionId ? parseInt(regionId) : null,
-        cityId: cityId ? parseInt(cityId) : null,
-        judgeRole: (judgeRole || 'JUDGE').toUpperCase() as 'JUDGE' | 'ARBITER' | 'REFEREE' | 'CORNER_JUDGE' | 'MIRROR_JUDGE' | 'LINE_JUDGE' | 'SECRETARY' | 'DOCTOR' | 'CLASSIFIER',
-        judgeCategory: (judgeCategory || 'NATIONAL').toUpperCase() as 'INTERNATIONAL' | 'NATIONAL' | 'REGIONAL',
-        certificateNumber,
-        licenseDate: licenseDate ? new Date(licenseDate) : null,
-        licenseExpiry: licenseExpiry ? new Date(licenseExpiry) : null,
-        startDate: startDate ? new Date(startDate) : null,
-        experienceYears: experienceYears ? parseInt(experienceYears) : null,
-        isInternational: isInternational || false,
-        isActive: true,
+        firstName: firstName as string,
+        lastName: lastName as string,
+        patronymic: (patronymic as string) || null,
+        phone: (phone as string) || null,
+        email: (email as string) || null,
+        telegramChatId: (telegramChatId as string) || null,
+        photo: (photo as string) || null,
+        countryId: countryId ? parseInt(String(countryId)) : null,
+        regionId: regionId ? parseInt(String(regionId)) : null,
+        cityId: cityId ? parseInt(String(cityId)) : null,
+        judgeRole: ((judgeRole as string) || 'JUDGE').toUpperCase() as 'JUDGE' | 'ARBITER' | 'REFEREE' | 'CORNER_JUDGE' | 'MIRROR_JUDGE' | 'LINE_JUDGE' | 'SECRETARY' | 'DOCTOR' | 'CLASSIFIER',
+        judgeCategory: ((judgeCategory as string) || 'NATIONAL').toUpperCase() as 'INTERNATIONAL' | 'NATIONAL' | 'REGIONAL',
+        certificateNumber: (certificateNumber as string) || null,
+        licenseDate: licenseDate ? new Date(licenseDate as string) : null,
+        licenseExpiry: licenseExpiry ? new Date(licenseExpiry as string) : null,
+        startDate: startDate ? new Date(startDate as string) : null,
+        experienceYears: experienceYears ? parseInt(String(experienceYears)) : null,
+        isInternational: (isInternational as boolean) || false,
+        isActive: isActive === undefined ? true : isActive === true || isActive === 'true',
         createdById: user.id,
       },
       include: {

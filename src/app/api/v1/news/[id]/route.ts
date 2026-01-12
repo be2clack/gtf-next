@@ -3,6 +3,24 @@ import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { getTranslation } from '@/lib/utils/multilingual'
 import type { Locale } from '@/types'
+import path from 'path'
+import fs from 'fs/promises'
+
+// Helper function to save uploaded file
+async function saveUploadedFile(file: File, subdir: string): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  const buffer = Buffer.from(bytes)
+
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', subdir)
+  await fs.mkdir(uploadDir, { recursive: true })
+
+  const ext = file.name.split('.').pop() || 'jpg'
+  const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`
+  const filepath = path.join(uploadDir, filename)
+
+  await fs.writeFile(filepath, buffer)
+  return filename
+}
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -33,6 +51,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       title: getTranslation(news.title as Record<string, string>, locale),
       description: getTranslation(news.description as Record<string, string>, locale),
       content: getTranslation(news.content as Record<string, string>, locale),
+      // Also include raw multilingual data for edit form
+      titleMultilingual: news.title,
+      descriptionMultilingual: news.description,
+      contentMultilingual: news.content,
     }
 
     return NextResponse.json({
@@ -61,8 +83,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const body = await request.json()
-
     const news = await prisma.news.findUnique({
       where: { id: parseInt(id) },
     })
@@ -72,6 +92,41 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
         { success: false, error: 'News not found' },
         { status: 404 }
       )
+    }
+
+    // Check federation access
+    if (user.federationId && news.federationId !== user.federationId) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied' },
+        { status: 403 }
+      )
+    }
+
+    // Parse body - support both JSON and FormData
+    const contentType = request.headers.get('content-type') || ''
+    let body: Record<string, unknown> = {}
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+
+      for (const [key, value] of formData.entries()) {
+        if (key === 'photo' && value instanceof File && value.size > 0) {
+          body.photo = await saveUploadedFile(value, 'news')
+        } else if (value !== '' && value !== 'undefined' && value !== 'null') {
+          // Try to parse JSON for multilingual fields
+          if (['title', 'description', 'content'].includes(key) && typeof value === 'string') {
+            try {
+              body[key] = JSON.parse(value)
+            } catch {
+              body[key] = value
+            }
+          } else {
+            body[key] = value
+          }
+        }
+      }
+    } else {
+      body = await request.json()
     }
 
     const updateData: Record<string, unknown> = {}
@@ -86,9 +141,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       updateData.content = typeof body.content === 'string' ? { ru: body.content } : body.content
     }
     if (body.photo !== undefined) updateData.photo = body.photo
-    if (body.date !== undefined) updateData.date = new Date(body.date)
-    if (body.published !== undefined) updateData.published = body.published
-    if (body.ordering !== undefined) updateData.ordering = body.ordering
+    if (body.date !== undefined) updateData.date = new Date(body.date as string)
+    if (body.published !== undefined) {
+      updateData.published = body.published === true || body.published === 'true'
+    }
+    if (body.ordering !== undefined) {
+      updateData.ordering = parseInt(String(body.ordering)) || 0
+    }
+
+    // Handle photo removal
+    if (body.removePhoto === 'true' || body.removePhoto === true) {
+      updateData.photo = null
+    }
 
     const updated = await prisma.news.update({
       where: { id: parseInt(id) },
@@ -145,6 +209,14 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { success: false, error: 'News not found' },
         { status: 404 }
+      )
+    }
+
+    // Check federation access
+    if (user.federationId && news.federationId !== user.federationId) {
+      return NextResponse.json(
+        { success: false, error: 'Access denied' },
+        { status: 403 }
       )
     }
 

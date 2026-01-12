@@ -98,21 +98,21 @@ export async function POST(request: NextRequest) {
     let redirectUrl = '/'
     switch (fullUser.type) {
       case 'ADMIN':
-        redirectUrl = fullUser.federation
-          ? `/admin/dashboard`
-          : '/control/dashboard'
+        // Superadmin (no federation) -> /superadmin
+        // Federation admin -> /admin
+        redirectUrl = fullUser.federationId ? '/admin' : '/superadmin'
         break
       case 'SPORTSMAN':
-        redirectUrl = '/cabinet/sportsman'
+        redirectUrl = '/cabinet'
         break
       case 'TRAINER':
-        redirectUrl = '/cabinet/trainer'
+        redirectUrl = '/cabinet'
         break
       case 'JUDGE':
-        redirectUrl = '/cabinet/judge'
+        redirectUrl = '/cabinet'
         break
       case 'REPRESENTATIVE':
-        redirectUrl = '/cabinet/representative'
+        redirectUrl = '/cabinet'
         break
       default:
         redirectUrl = '/'

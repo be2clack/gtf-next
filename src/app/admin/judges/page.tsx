@@ -15,13 +15,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -69,7 +62,6 @@ export default function AdminJudgesPage() {
   const [judges, setJudges] = useState<Judge[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     fetchJudges()
@@ -112,39 +104,6 @@ export default function AdminJudgesPage() {
     }
   }
 
-  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-
-    try {
-      const res = await fetch('/api/v1/judges', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          firstName: formData.get('firstName'),
-          lastName: formData.get('lastName'),
-          patronymic: formData.get('patronymic'),
-          phone: formData.get('phone'),
-          email: formData.get('email'),
-          judgeRole: formData.get('judgeRole') || 'JUDGE',
-          judgeCategory: formData.get('judgeCategory') || 'NATIONAL',
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Судья создан')
-        setIsCreateOpen(false)
-        fetchJudges()
-      } else {
-        toast.error(data.error || 'Ошибка создания')
-      }
-    } catch (error) {
-      toast.error('Ошибка создания судьи')
-    }
-  }
-
   const getFullName = (judge: Judge) => {
     return `${judge.lastName || ''} ${judge.firstName || ''} ${judge.patronymic || ''}`.trim() || 'Без имени'
   }
@@ -156,58 +115,12 @@ export default function AdminJudgesPage() {
           <h1 className="text-3xl font-bold">Судьи</h1>
           <p className="text-muted-foreground">Управление судьями федерации</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Добавить судью
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Новый судья</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Фамилия *</label>
-                <Input name="lastName" required placeholder="Иванов" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Имя *</label>
-                <Input name="firstName" required placeholder="Иван" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Отчество</label>
-                <Input name="patronymic" placeholder="Иванович" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Телефон</label>
-                <Input name="phone" placeholder="+996 XXX XXX XXX" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Email</label>
-                <Input name="email" type="email" placeholder="email@example.com" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Роль</label>
-                <select name="judgeRole" className="w-full border rounded-md p-2">
-                  {Object.entries(roleLabels).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Категория</label>
-                <select name="judgeCategory" className="w-full border rounded-md p-2">
-                  {Object.entries(categoryLabels).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <Button type="submit" className="w-full">Создать</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button asChild>
+          <Link href="/admin/judges/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить судью
+          </Link>
+        </Button>
       </div>
 
       <Card>

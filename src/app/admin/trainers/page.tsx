@@ -27,8 +27,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, UserCog, Users, Building2 } from 'lucide-react'
+import { Plus, Search, MoreHorizontal, Pencil, Trash2, UserCog, Users, Building2 } from 'lucide-react'
 import { toast } from 'sonner'
+
+// Helper to extract string from multilingual JSON field
+function getLocalizedString(value: unknown, locale = 'ru'): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, string>
+    return obj[locale] || obj['ru'] || obj['en'] || Object.values(obj)[0] || ''
+  }
+  return String(value)
+}
 
 interface Trainer {
   id: number
@@ -38,7 +49,7 @@ interface Trainer {
   phone: string | null
   photo: string | null
   rank: string
-  club: { title: Record<string, string> } | null
+  club: { title: unknown } | null
   city: { nameRu: string } | null
   _count: { sportsmen: number }
 }
@@ -240,7 +251,7 @@ export default function AdminTrainersPage() {
                       {trainer.club?.title ? (
                         <div className="flex items-center gap-1">
                           <Building2 className="h-3 w-3" />
-                          {(trainer.club.title as Record<string, string>).ru || '—'}
+                          {getLocalizedString(trainer.club.title) || '—'}
                         </div>
                       ) : '—'}
                     </TableCell>

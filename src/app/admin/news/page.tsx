@@ -15,13 +15,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -30,9 +23,20 @@ import {
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Newspaper, Calendar } from 'lucide-react'
 import { toast } from 'sonner'
 
+// Helper to extract string from multilingual JSON field
+function getLocalizedString(value: unknown, locale = 'ru'): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, string>
+    return obj[locale] || obj['ru'] || obj['en'] || Object.values(obj)[0] || ''
+  }
+  return String(value)
+}
+
 interface News {
   id: number
-  title: string
+  title: unknown
   photo: string | null
   date: string | null
   published: boolean
@@ -43,7 +47,6 @@ export default function AdminNewsPage() {
   const [news, setNews] = useState<News[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     fetchNews()
@@ -82,36 +85,6 @@ export default function AdminNewsPage() {
     }
   }
 
-  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-
-    try {
-      const res = await fetch('/api/v1/news', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.get('title'),
-          description: formData.get('description'),
-          date: formData.get('date') || new Date().toISOString(),
-          published: formData.get('published') === 'on',
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Новость создана')
-        setIsCreateOpen(false)
-        fetchNews()
-      } else {
-        toast.error(data.error || 'Ошибка создания')
-      }
-    } catch (error) {
-      toast.error('Ошибка создания новости')
-    }
-  }
-
   async function handleTogglePublish(id: number, currentState: boolean) {
     try {
       const res = await fetch(`/api/v1/news/${id}`, {
@@ -142,9 +115,10 @@ export default function AdminNewsPage() {
     })
   }
 
-  const filteredNews = news.filter(n =>
-    n.title?.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredNews = news.filter(n => {
+    const title = getLocalizedString(n.title)
+    return title.toLowerCase().includes(search.toLowerCase())
+  })
 
   return (
     <div className="space-y-6">
@@ -153,42 +127,12 @@ export default function AdminNewsPage() {
           <h1 className="text-3xl font-bold">Новости</h1>
           <p className="text-muted-foreground">Управление новостями федерации</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Добавить новость
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Новая новость</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Заголовок *</label>
-                <Input name="title" required placeholder="Введите заголовок" />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Описание</label>
-                <textarea
-                  name="description"
-                  className="w-full border rounded-md p-2 min-h-[100px]"
-                  placeholder="Краткое описание новости"
-                />
-              </div>
-              <div>
-                <label className="text-sm font-medium">Дата</label>
-                <Input name="date" type="date" defaultValue={new Date().toISOString().split('T')[0]} />
-              </div>
-              <div className="flex items-center gap-2">
-                <input type="checkbox" name="published" id="published" defaultChecked />
-                <label htmlFor="published" className="text-sm">Опубликовать сразу</label>
-              </div>
-              <Button type="submit" className="w-full">Создать</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button asChild>
+          <Link href="/admin/news/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Добавить новость
+          </Link>
+        </Button>
       </div>
 
       <Card>
@@ -228,14 +172,14 @@ export default function AdminNewsPage() {
                   <TableRow key={item.id}>
                     <TableCell>
                       <div className="flex items-center gap-3">
-                        <div className="w-16 h-12 rounded bg-muted flex items-center justify-center">
+                        <div className="w-16 h-12 rounded bg-muted flex items-center justify-center overflow-hidden">
                           {item.photo ? (
-                            <img src={item.photo} alt="" className="w-full h-full rounded object-cover" />
+                            <img src={`/uploads/news/${item.photo}`} alt="" className="w-full h-full object-cover" />
                           ) : (
                             <Newspaper className="h-6 w-6 text-muted-foreground" />
                           )}
                         </div>
-                        <div className="font-medium line-clamp-2">{item.title}</div>
+                        <div className="font-medium line-clamp-2">{getLocalizedString(item.title)}</div>
                       </div>
                     </TableCell>
                     <TableCell>

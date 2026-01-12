@@ -18,6 +18,7 @@ import {
   Scale,
   BookOpen,
   Languages,
+  BarChart3,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -38,6 +39,7 @@ const navigation = [
   { name: 'Федерации', href: '/superadmin/federations', icon: Building },
   { name: 'Судьи', href: '/superadmin/judges', icon: Scale },
   { name: 'Соревнования', href: '/superadmin/competitions', icon: Trophy },
+  { name: 'Статистика', href: '/superadmin/statistics', icon: BarChart3 },
   {
     name: 'Справочники',
     icon: BookOpen,

@@ -28,6 +28,56 @@ export async function GET() {
   return NextResponse.json(grouped)
 }
 
+// POST /api/superadmin/settings - Bulk update settings
+export async function POST(request: NextRequest) {
+  const isSuper = await isSuperAdmin()
+  if (!isSuper) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  try {
+    const body = await request.json()
+    const { settings, group } = body
+
+    if (!settings || typeof settings !== 'object') {
+      return NextResponse.json({ error: 'Settings object required' }, { status: 400 })
+    }
+
+    // Upsert each setting
+    const results = await Promise.all(
+      Object.entries(settings).map(async ([key, value]) => {
+        return prisma.setting.upsert({
+          where: {
+            federationId_key: {
+              federationId: null as unknown as number,
+              key,
+            },
+          },
+          update: {
+            value: value as string | null,
+            group: group || 'general',
+          },
+          create: {
+            federationId: null,
+            key,
+            value: value as string | null,
+            group: group || 'general',
+            dataType: 'string',
+          },
+        })
+      })
+    )
+
+    return NextResponse.json({ success: true, count: results.length })
+  } catch (error) {
+    console.error('Failed to save settings:', error)
+    return NextResponse.json(
+      { error: 'Failed to save settings' },
+      { status: 500 }
+    )
+  }
+}
+
 // PUT /api/superadmin/settings - Update global settings
 export async function PUT(request: NextRequest) {
   const isSuper = await isSuperAdmin()

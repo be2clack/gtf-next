@@ -30,9 +30,20 @@ import {
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Building2, Users, UserCog } from 'lucide-react'
 import { toast } from 'sonner'
 
+// Helper to extract string from multilingual JSON field
+function getLocalizedString(value: unknown, locale = 'ru'): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, string>
+    return obj[locale] || obj['ru'] || obj['en'] || Object.values(obj)[0] || ''
+  }
+  return String(value)
+}
+
 interface Club {
   id: number
-  title: string
+  title: unknown
   logo: string | null
   rating: number
   instagram: string | null
@@ -200,7 +211,7 @@ export default function AdminClubsPage() {
                           )}
                         </div>
                         <div>
-                          <div className="font-medium">{club.title}</div>
+                          <div className="font-medium">{getLocalizedString(club.title)}</div>
                           {club.instagram && (
                             <div className="text-sm text-muted-foreground">@{club.instagram}</div>
                           )}

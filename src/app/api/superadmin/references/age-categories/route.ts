@@ -27,14 +27,33 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { code, nameRu, nameEn, minAge, maxAge, gender, isActive } = body
 
+    if (!code) {
+      return NextResponse.json(
+        { error: 'Код обязателен' },
+        { status: 400 }
+      )
+    }
+
+    // Check if code already exists
+    const existing = await prisma.ageCategory.findFirst({
+      where: { code },
+    })
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Категория с таким кодом уже существует' },
+        { status: 400 }
+      )
+    }
+
     const category = await prisma.ageCategory.create({
       data: {
         code,
-        nameRu,
-        nameEn,
-        minAge,
-        maxAge,
-        gender,
+        nameRu: nameRu || null,
+        nameEn: nameEn || null,
+        minAge: parseInt(minAge) || 0,
+        maxAge: parseInt(maxAge) || 99,
+        gender: gender || 'MIXED',
         isActive: isActive !== false,
       },
     })

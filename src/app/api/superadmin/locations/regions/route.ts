@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, nameRu, nameEn, countryId } = body
+    const { code, nameRu, nameEn, countryId, ordering, isActive } = body
 
     if (!countryId) {
       return NextResponse.json(
@@ -46,12 +46,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Check if code already exists (if provided)
+    if (code) {
+      const existing = await prisma.region.findFirst({
+        where: { code: code.toLowerCase() },
+      })
+
+      if (existing) {
+        return NextResponse.json(
+          { error: 'Регион с таким кодом уже существует' },
+          { status: 400 }
+        )
+      }
+    }
+
     const region = await prisma.region.create({
       data: {
-        code,
+        code: code ? code.toLowerCase() : null,
         nameRu,
-        nameEn,
+        nameEn: nameEn || null,
         countryId: parseInt(countryId),
+        ordering: ordering || 0,
+        isActive: isActive !== false,
       },
     })
 

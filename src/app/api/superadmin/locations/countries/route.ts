@@ -33,13 +33,27 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, nameRu, nameEn, sortOrder, isActive } = body
+    const { code, nameRu, nameEn, phoneCode, flagEmoji, sortOrder, isActive } = body
+
+    // Check if code already exists
+    const existing = await prisma.country.findFirst({
+      where: { code: code.toUpperCase() },
+    })
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Страна с таким кодом уже существует' },
+        { status: 400 }
+      )
+    }
 
     const country = await prisma.country.create({
       data: {
         code: code.toUpperCase(),
         nameRu,
         nameEn,
+        phoneCode: phoneCode || null,
+        flagEmoji: flagEmoji || null,
         sortOrder: sortOrder || 0,
         isActive: isActive !== false,
       },

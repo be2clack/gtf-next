@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isSuperAdmin } from '@/lib/auth'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 
 // GET /api/superadmin/federations - List all federations
 export async function GET() {
@@ -36,7 +37,19 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, name, countryId, currency, timezone, domain } = body
+    const {
+      code,
+      name,
+      nameEn,
+      countryId,
+      currency,
+      timezone,
+      domain,
+      primaryLanguage,
+      contactEmail,
+      contactPhone,
+      description,
+    } = body
 
     // Validate required fields
     if (!code || !name || !countryId) {
@@ -47,7 +60,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if code already exists
-    const existing = await prisma.federation.findUnique({
+    const existing = await prisma.federation.findFirst({
       where: { code: code.toLowerCase() },
     })
 
@@ -63,11 +76,26 @@ export async function POST(request: NextRequest) {
       data: {
         code: code.toLowerCase(),
         name,
+        nameEn: nameEn || null,
         countryId: parseInt(countryId),
         currency: currency || 'USD',
         timezone: timezone || 'UTC',
         domain: domain || `${code.toLowerCase()}.gtf.global`,
+        primaryLanguage: primaryLanguage || 'ru',
+        languages: [primaryLanguage || 'ru'],
+        contactEmail: contactEmail || null,
+        contactPhone: contactPhone || null,
+        description: description ? { ru: description } : Prisma.JsonNull,
         status: 'ACTIVE',
+        settings: {
+          membership_fee: 1000,
+          competition_fee: 500,
+          allow_online_payment: false,
+          require_photo: true,
+        },
+      },
+      include: {
+        country: { select: { id: true, code: true, nameRu: true, nameEn: true } },
       },
     })
 

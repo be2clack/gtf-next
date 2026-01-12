@@ -30,15 +30,34 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, name, disciplineId, minLevel, maxLevel, isActive } = body
+    const { code, name, minLevel, maxLevel, disciplineId, isActive } = body
+
+    if (!code || !name) {
+      return NextResponse.json(
+        { error: 'Код и название обязательны' },
+        { status: 400 }
+      )
+    }
+
+    // Check if code already exists
+    const existing = await prisma.beltCategory.findFirst({
+      where: { code },
+    })
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Категория с таким кодом уже существует' },
+        { status: 400 }
+      )
+    }
 
     const category = await prisma.beltCategory.create({
       data: {
         code,
         name,
+        minLevel: minLevel ? parseInt(minLevel) : 0,
+        maxLevel: maxLevel ? parseInt(maxLevel) : 0,
         disciplineId: disciplineId ? parseInt(disciplineId) : null,
-        minLevel: minLevel || 0,
-        maxLevel: maxLevel || 0,
         isActive: isActive !== false,
       },
     })

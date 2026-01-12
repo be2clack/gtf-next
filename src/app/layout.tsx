@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
+import { headers } from 'next/headers'
 import { Toaster } from 'sonner'
 import { ThemeProvider } from '@/components/providers/theme-provider'
 import { I18nProvider } from '@/lib/i18n'
@@ -37,6 +38,12 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const headersList = await headers()
+  const pathname = headersList.get('x-pathname') || ''
+
+  // Check if we're on admin or superadmin pages - don't show public header/footer
+  const isAdminRoute = pathname.startsWith('/admin') || pathname.startsWith('/superadmin')
+
   const [user, { federation, locale }, urlPrefix] = await Promise.all([
     getCurrentUser(),
     getFederationContext(),
@@ -53,36 +60,40 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
         <I18nProvider initialLocale={(locale || 'ru') as Locale}>
-        <Header
-          user={user ? {
-            id: user.id,
-            name: user.name,
-            type: user.type,
-            federationId: user.federationId,
-            federation: federation ? { code: federation.code, name: federation.name } : null,
-          } : null}
-          federation={federation ? {
-            code: federation.code,
-            name: federation.name,
-            logo: getFederationLogoUrl(federation.logo),
-            siteTitle: federation.siteTitle as Record<string, string> | null,
-          } : null}
-          urlPrefix={urlPrefix}
-          locale={locale}
-        />
+        {!isAdminRoute && (
+          <Header
+            user={user ? {
+              id: user.id,
+              name: user.name,
+              type: user.type,
+              federationId: user.federationId,
+              federation: federation ? { code: federation.code, name: federation.name } : null,
+            } : null}
+            federation={federation ? {
+              code: federation.code,
+              name: federation.name,
+              logo: getFederationLogoUrl(federation.logo),
+              siteTitle: federation.siteTitle as Record<string, string> | null,
+            } : null}
+            urlPrefix={urlPrefix}
+            locale={locale}
+          />
+        )}
         <main className="flex-1">
           {children}
         </main>
-        <Footer
-          federation={federation ? {
-            name: federation.name,
-            contactEmail: federation.contactEmail,
-            contactPhone: federation.contactPhone,
-            instagram: federation.instagram,
-            facebook: federation.facebook,
-            youtube: federation.youtube,
-          } : null}
-        />
+        {!isAdminRoute && (
+          <Footer
+            federation={federation ? {
+              name: federation.name,
+              contactEmail: federation.contactEmail,
+              contactPhone: federation.contactPhone,
+              instagram: federation.instagram,
+              facebook: federation.facebook,
+              youtube: federation.youtube,
+            } : null}
+          />
+        )}
         <Toaster position="top-right" richColors />
         </I18nProvider>
         </ThemeProvider>

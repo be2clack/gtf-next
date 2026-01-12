@@ -24,16 +24,30 @@ import {
 } from '@/components/ui/dialog'
 import { toast } from 'sonner'
 
+// Helper to extract string from multilingual JSON field
+function getLocalizedString(value: unknown, locale = 'ru'): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, string>
+    return obj[locale] || obj['ru'] || obj['en'] || Object.values(obj)[0] || ''
+  }
+  return String(value)
+}
+
 interface Sportsman {
   id: number
-  fio: string
+  fio: string | null
+  lastName: string | null
+  firstName: string | null
   sex: number
   dateOfBirth: string | null
-  club: { title: string } | null
-  trainer: { fio: string } | null
+  club: { id: number; title: unknown } | null
+  trainer: { id: number; firstName: string | null; lastName: string | null } | null
   gyp: number | null
   dan: number | null
   weight: number | null
+  beltLevel: number | null
 }
 
 export default function SportsmenPage() {
@@ -90,9 +104,11 @@ export default function SportsmenPage() {
     {
       accessorKey: 'fio',
       header: ({ column }) => <DataTableColumnHeader column={column} title="ФИО" />,
-      cell: ({ row }) => (
-        <div className="font-medium">{row.getValue('fio')}</div>
-      ),
+      cell: ({ row }) => {
+        const s = row.original
+        const name = s.fio || `${s.lastName || ''} ${s.firstName || ''}`.trim() || '-'
+        return <div className="font-medium">{name}</div>
+      },
     },
     {
       accessorKey: 'sex',
@@ -116,16 +132,18 @@ export default function SportsmenPage() {
       accessorKey: 'club',
       header: 'Клуб',
       cell: ({ row }) => {
-        const club = row.getValue('club') as { title: string } | null
-        return club?.title || '-'
+        const club = row.original.club
+        if (!club) return '-'
+        return getLocalizedString(club.title) || '-'
       },
     },
     {
       accessorKey: 'trainer',
       header: 'Тренер',
       cell: ({ row }) => {
-        const trainer = row.getValue('trainer') as { fio: string } | null
-        return trainer?.fio || '-'
+        const trainer = row.original.trainer
+        if (!trainer) return '-'
+        return `${trainer.lastName || ''} ${trainer.firstName || ''}`.trim() || '-'
       },
     },
     {

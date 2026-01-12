@@ -3,6 +3,24 @@ import prisma from '@/lib/prisma'
 import { getCurrentUser } from '@/lib/auth'
 import { getTranslation } from '@/lib/utils/multilingual'
 import type { Locale } from '@/types'
+import path from 'path'
+import fs from 'fs/promises'
+
+// Helper function to save uploaded file
+async function saveUploadedFile(file: File, subdir: string): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  const buffer = Buffer.from(bytes)
+
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', subdir)
+  await fs.mkdir(uploadDir, { recursive: true })
+
+  const ext = file.name.split('.').pop() || 'jpg'
+  const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`
+  const filepath = path.join(uploadDir, filename)
+
+  await fs.writeFile(filepath, buffer)
+  return filename
+}
 
 type RouteParams = { params: Promise<{ id: string }> }
 
@@ -93,8 +111,6 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
-    const body = await request.json()
-
     const competition = await prisma.competition.findUnique({
       where: { id: parseInt(id), deletedAt: null },
     })
@@ -114,14 +130,41 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       )
     }
 
+    // Parse body - support both JSON and FormData
+    const contentType = request.headers.get('content-type') || ''
+    let body: Record<string, unknown> = {}
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+
+      for (const [key, value] of formData.entries()) {
+        if (key === 'photo' && value instanceof File && value.size > 0) {
+          body.photo = await saveUploadedFile(value, 'competitions')
+        } else if (value !== '' && value !== 'undefined' && value !== 'null') {
+          // Try to parse JSON for multilingual fields
+          if (['title', 'description', 'venue'].includes(key) && typeof value === 'string') {
+            try {
+              body[key] = JSON.parse(value)
+            } catch {
+              body[key] = value
+            }
+          } else {
+            body[key] = value
+          }
+        }
+      }
+    } else {
+      body = await request.json()
+    }
+
     const updateData: Record<string, unknown> = { updatedById: user.id }
 
     // Handle updatable fields
     const fields = [
       'title', 'description', 'venue', 'photo', 'status', 'level', 'type', 'format',
       'ratingType', 'countryId', 'regionId', 'cityId', 'isPaid', 'baseRegistrationFee',
-      'additionalDisciplineFee', 'currency', 'tatamiCount', 'medicalCheckRequired',
-      'weighInDate', 'rulesVersion'
+      'additionalDisciplineFee', 'registrationFee', 'currency', 'tatamiCount',
+      'medicalCheckRequired', 'insuranceRequired', 'weighInDate', 'rulesVersion'
     ]
 
     for (const field of fields) {
@@ -131,23 +174,30 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
             ? { ru: body[field] }
             : body[field]
         } else if (['countryId', 'regionId', 'cityId', 'tatamiCount'].includes(field)) {
-          updateData[field] = body[field] ? parseInt(body[field]) : null
-        } else if (['baseRegistrationFee', 'additionalDisciplineFee'].includes(field)) {
-          updateData[field] = body[field] ? parseFloat(body[field]) : null
+          updateData[field] = body[field] ? parseInt(String(body[field])) : null
+        } else if (['baseRegistrationFee', 'additionalDisciplineFee', 'registrationFee'].includes(field)) {
+          updateData[field] = body[field] ? parseFloat(String(body[field])) : null
         } else if (['status', 'level', 'type', 'format', 'ratingType'].includes(field)) {
-          updateData[field] = body[field].toUpperCase()
+          updateData[field] = String(body[field]).toUpperCase()
+        } else if (['medicalCheckRequired', 'insuranceRequired', 'isPaid'].includes(field)) {
+          updateData[field] = body[field] === true || body[field] === 'true'
         } else {
           updateData[field] = body[field]
         }
       }
     }
 
+    // Handle photo removal
+    if (body.removePhoto === 'true' || body.removePhoto === true) {
+      updateData.photo = null
+    }
+
     // Handle dates
-    if (body.startDate) updateData.startDate = new Date(body.startDate)
-    if (body.endDate) updateData.endDate = new Date(body.endDate)
-    if (body.registrationDeadline) updateData.registrationDeadline = new Date(body.registrationDeadline)
-    if (body.withdrawalDeadline) updateData.withdrawalDeadline = new Date(body.withdrawalDeadline)
-    if (body.weighInDate) updateData.weighInDate = new Date(body.weighInDate)
+    if (body.startDate) updateData.startDate = new Date(body.startDate as string)
+    if (body.endDate) updateData.endDate = new Date(body.endDate as string)
+    if (body.registrationDeadline) updateData.registrationDeadline = new Date(body.registrationDeadline as string)
+    if (body.withdrawalDeadline) updateData.withdrawalDeadline = new Date(body.withdrawalDeadline as string)
+    if (body.weighInDate) updateData.weighInDate = new Date(body.weighInDate as string)
 
     const updated = await prisma.competition.update({
       where: { id: parseInt(id) },

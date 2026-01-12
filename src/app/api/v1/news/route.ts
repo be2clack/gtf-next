@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { getCurrentUser } from '@/lib/auth'
 import { getTranslation } from '@/lib/utils/multilingual'
 import type { Locale } from '@/types'
+import path from 'path'
+import fs from 'fs/promises'
+
+// Helper function to save uploaded file
+async function saveUploadedFile(file: File, subdir: string): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  const buffer = Buffer.from(bytes)
+
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', subdir)
+  await fs.mkdir(uploadDir, { recursive: true })
+
+  const ext = file.name.split('.').pop() || 'jpg'
+  const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`
+  const filepath = path.join(uploadDir, filename)
+
+  await fs.writeFile(filepath, buffer)
+  return filename
+}
 
 // GET /api/v1/news - List news
 export async function GET(request: NextRequest) {
@@ -82,7 +101,32 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    // Parse body - support both JSON and FormData
+    const contentType = request.headers.get('content-type') || ''
+    let body: Record<string, unknown> = {}
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+
+      for (const [key, value] of formData.entries()) {
+        if (key === 'photo' && value instanceof File && value.size > 0) {
+          body.photo = await saveUploadedFile(value, 'news')
+        } else if (value !== '' && value !== 'undefined' && value !== 'null') {
+          // Try to parse JSON for multilingual fields
+          if (['title', 'description', 'content'].includes(key) && typeof value === 'string') {
+            try {
+              body[key] = JSON.parse(value)
+            } catch {
+              body[key] = value
+            }
+          } else {
+            body[key] = value
+          }
+        }
+      }
+    } else {
+      body = await request.json()
+    }
 
     const {
       title,
@@ -93,7 +137,7 @@ export async function POST(request: NextRequest) {
       published,
       ordering,
       federationId: bodyFederationId,
-    } = body
+    } = body as Record<string, unknown>
 
     if (!title) {
       return NextResponse.json(
@@ -102,26 +146,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const federationId = bodyFederationId || user.federationId
+    const federationId = typeof bodyFederationId === 'number' ? bodyFederationId : (user.federationId || null)
 
     const news = await prisma.news.create({
       data: {
         federationId,
-        title: typeof title === 'string' ? { ru: title } : title,
+        title: typeof title === 'string' ? { ru: title } : (title as Record<string, string>),
         description: description
           ? typeof description === 'string'
             ? { ru: description }
-            : description
-          : null,
+            : (description as Record<string, string>)
+          : Prisma.JsonNull,
         content: content
           ? typeof content === 'string'
             ? { ru: content }
-            : content
-          : null,
-        photo,
-        date: date ? new Date(date) : new Date(),
-        published: published ?? false,
-        ordering: ordering || 0,
+            : (content as Record<string, string>)
+          : Prisma.JsonNull,
+        photo: photo as string | null,
+        date: date ? new Date(date as string) : new Date(),
+        published: (published as boolean) ?? false,
+        ordering: (ordering as number) || 0,
       },
       include: {
         federation: { select: { id: true, code: true, name: true } },

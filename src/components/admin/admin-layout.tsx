@@ -12,15 +12,13 @@ import {
   Settings,
   LayoutDashboard,
   UserCog,
-  Scale,
   LogOut,
   ChevronLeft,
   ChevronRight,
   Menu,
-  Database,
   Award,
-  TrendingUp,
   Handshake,
+  FileText,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ScrollArea } from '@/components/ui/scroll-area'
@@ -43,17 +41,15 @@ interface AdminLayoutProps {
 const navigation = [
   { name: 'Дашборд', href: '/admin', icon: LayoutDashboard },
   { name: 'Спортсмены', href: '/admin/sportsmen', icon: Users },
-  { name: 'Клубы', href: '/admin/clubs', icon: Building2 },
   { name: 'Тренеры', href: '/admin/trainers', icon: UserCog },
+  { name: 'Клубы', href: '/admin/clubs', icon: Building2 },
   { name: 'Судьи', href: '/admin/judges', icon: Medal },
-  { name: 'Соревнования', href: '/admin/competitions', icon: Trophy },
-  { name: 'Взвешивание', href: '/admin/weighin', icon: Scale },
-  { name: 'Аттестации', href: '/admin/attestations', icon: Award },
-  { name: 'Рейтинги', href: '/admin/ratings', icon: TrendingUp },
+  { name: 'Аттестация', href: '/admin/attestations', icon: Award },
   { name: 'Новости', href: '/admin/news', icon: Newspaper },
-  { name: 'Партнёры', href: '/admin/partners', icon: Handshake },
-  { name: 'Миграция', href: '/admin/migration', icon: Database },
+  { name: 'Турниры', href: '/admin/competitions', icon: Trophy },
   { name: 'Настройки', href: '/admin/settings', icon: Settings },
+  { name: 'Партнёры', href: '/admin/partners', icon: Handshake },
+  { name: 'Логи активности', href: '/admin/activity-log', icon: FileText },
 ]
 
 export function AdminLayout({ children, user, federation }: AdminLayoutProps) {

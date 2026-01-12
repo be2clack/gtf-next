@@ -1,8 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
 import prisma from '@/lib/prisma'
+import { Prisma } from '@prisma/client'
 import { getCurrentUser } from '@/lib/auth'
 import { getTranslation } from '@/lib/utils/multilingual'
 import type { Locale } from '@/types'
+import path from 'path'
+import fs from 'fs/promises'
+
+// Helper function to save uploaded file
+async function saveUploadedFile(file: File, subdir: string): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  const buffer = Buffer.from(bytes)
+
+  const uploadDir = path.join(process.cwd(), 'public', 'uploads', subdir)
+  await fs.mkdir(uploadDir, { recursive: true })
+
+  const ext = file.name.split('.').pop() || 'jpg'
+  const filename = `${Date.now()}_${Math.random().toString(36).substr(2, 9)}.${ext}`
+  const filepath = path.join(uploadDir, filename)
+
+  await fs.writeFile(filepath, buffer)
+  return filename
+}
 
 // GET /api/v1/competitions - List competitions
 export async function GET(request: NextRequest) {
@@ -103,30 +122,62 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const body = await request.json()
+    const contentType = request.headers.get('content-type') || ''
+    let body: Record<string, unknown> = {}
+
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await request.formData()
+
+      for (const [key, value] of formData.entries()) {
+        if (key === 'photo' && value instanceof File && value.size > 0) {
+          body.photo = await saveUploadedFile(value, 'competitions')
+        } else if (value !== '' && value !== 'undefined' && value !== 'null') {
+          // Try to parse JSON for multilingual fields
+          if (['title', 'description', 'venue'].includes(key) && typeof value === 'string') {
+            try {
+              body[key] = JSON.parse(value)
+            } catch {
+              body[key] = value
+            }
+          } else {
+            body[key] = value
+          }
+        }
+      }
+    } else {
+      body = await request.json()
+    }
 
     const {
       title,
       description,
       venue,
+      photo,
       startDate,
       endDate,
       registrationDeadline,
+      withdrawalDeadline,
+      weighInDate,
       level,
       type,
+      teamType,
       format,
       ratingType,
+      rulesVersion,
       countryId,
       regionId,
       cityId,
       isPaid,
+      registrationFee,
       baseRegistrationFee,
       additionalDisciplineFee,
+      teamRegistrationFeePerPerson,
       currency,
       tatamiCount,
       medicalCheckRequired,
+      insuranceRequired,
       federationId: bodyFederationId,
-    } = body
+    } = body as Record<string, unknown>
 
     // Validate required fields
     if (!title || !startDate || !endDate || !level) {
@@ -136,45 +187,60 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const federationId = bodyFederationId || user.federationId
+    const federationId = (bodyFederationId as number) || user.federationId
 
     // Create competition
     const competition = await prisma.competition.create({
       data: {
         federationId,
-        title: typeof title === 'string' ? { ru: title } : title,
+        title: typeof title === 'string' ? { ru: title } : (title as Record<string, string>),
         description: description
           ? typeof description === 'string'
             ? { ru: description }
-            : description
-          : null,
+            : (description as Record<string, string>)
+          : Prisma.JsonNull,
         venue: venue
           ? typeof venue === 'string'
             ? { ru: venue }
-            : venue
-          : null,
-        startDate: new Date(startDate),
-        endDate: new Date(endDate),
+            : (venue as Record<string, string>)
+          : Prisma.JsonNull,
+        photo: (photo as string) || null,
+        startDate: new Date(startDate as string),
+        endDate: new Date(endDate as string),
         registrationDeadline: registrationDeadline
-          ? new Date(registrationDeadline)
+          ? new Date(registrationDeadline as string)
           : null,
-        level: level.toUpperCase(),
-        type: (type || 'MIXED').toUpperCase(),
-        format: (format || type || 'MIXED').toUpperCase(),
-        ratingType: (ratingType || 'OFFICIAL').toUpperCase(),
-        countryId: countryId ? parseInt(countryId) : null,
-        regionId: regionId ? parseInt(regionId) : null,
-        cityId: cityId ? parseInt(cityId) : null,
-        isPaid: isPaid || false,
+        withdrawalDeadline: withdrawalDeadline
+          ? new Date(withdrawalDeadline as string)
+          : null,
+        weighInDate: weighInDate
+          ? new Date(weighInDate as string)
+          : null,
+        level: (level as string).toUpperCase() as 'INTERNATIONAL' | 'NATIONAL' | 'REGIONAL' | 'CLUB',
+        type: ((type as string) || 'MIXED').toUpperCase() as 'PERSONAL' | 'TEAM' | 'MIXED',
+        teamType: teamType ? (teamType as string).toUpperCase() as 'CLUB' | 'REGIONAL' | 'CITY' | 'NATIONAL' : null,
+        format: ((format as string) || (type as string) || 'MIXED').toUpperCase() as 'PERSONAL' | 'TEAM' | 'MIXED',
+        ratingType: ((ratingType as string) || 'OFFICIAL').toUpperCase() as 'OFFICIAL' | 'FESTIVAL',
+        rulesVersion: (rulesVersion as string) || null,
+        countryId: countryId ? parseInt(String(countryId)) : null,
+        regionId: regionId ? parseInt(String(regionId)) : null,
+        cityId: cityId ? parseInt(String(cityId)) : null,
+        isPaid: (isPaid as boolean) || (registrationFee ? true : false) || (baseRegistrationFee ? true : false),
+        registrationFee: registrationFee
+          ? parseFloat(String(registrationFee))
+          : null,
         baseRegistrationFee: baseRegistrationFee
-          ? parseFloat(baseRegistrationFee)
+          ? parseFloat(String(baseRegistrationFee))
           : null,
         additionalDisciplineFee: additionalDisciplineFee
-          ? parseFloat(additionalDisciplineFee)
+          ? parseFloat(String(additionalDisciplineFee))
           : null,
-        currency: currency || 'KGS',
-        tatamiCount: tatamiCount || 1,
-        medicalCheckRequired: medicalCheckRequired ?? true,
+        teamRegistrationFeePerPerson: teamRegistrationFeePerPerson
+          ? parseFloat(String(teamRegistrationFeePerPerson))
+          : null,
+        currency: (currency as string) || 'KGS',
+        tatamiCount: tatamiCount ? parseInt(String(tatamiCount)) : 1,
+        medicalCheckRequired: medicalCheckRequired === undefined ? true : medicalCheckRequired === true || medicalCheckRequired === 'true',
         status: 'DRAFT',
         createdById: user.id,
         updatedById: user.id,

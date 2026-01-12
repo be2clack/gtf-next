@@ -25,15 +25,35 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, name, minWeight, maxWeight, gender, isActive } = body
+    const { code, name, minWeight, maxWeight, gender, disciplineId, isActive } = body
+
+    if (!code || !name) {
+      return NextResponse.json(
+        { error: 'Код и название обязательны' },
+        { status: 400 }
+      )
+    }
+
+    // Check if code already exists
+    const existing = await prisma.weightCategory.findFirst({
+      where: { code },
+    })
+
+    if (existing) {
+      return NextResponse.json(
+        { error: 'Категория с таким кодом уже существует' },
+        { status: 400 }
+      )
+    }
 
     const category = await prisma.weightCategory.create({
       data: {
         code,
         name,
-        minWeight,
-        maxWeight,
-        gender,
+        minWeight: minWeight ? parseFloat(minWeight) : 0,
+        maxWeight: maxWeight ? parseFloat(maxWeight) : 0,
+        gender: gender || 'MALE',
+        disciplineId: disciplineId ? parseInt(disciplineId) : null,
         isActive: isActive !== false,
       },
     })

@@ -39,7 +39,7 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { nameRu, nameEn, regionId } = body
+    const { nameRu, nameEn, regionId, sortOrder, isActive } = body
 
     if (!regionId) {
       return NextResponse.json(
@@ -48,11 +48,20 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    if (!nameRu) {
+      return NextResponse.json(
+        { error: 'Название обязательно' },
+        { status: 400 }
+      )
+    }
+
     const city = await prisma.city.create({
       data: {
         nameRu,
-        nameEn,
+        nameEn: nameEn || null,
         regionId: parseInt(regionId),
+        sortOrder: sortOrder || 0,
+        isActive: isActive !== false,
       },
     })
 

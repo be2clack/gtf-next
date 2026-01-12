@@ -15,13 +15,6 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from '@/components/ui/dialog'
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -30,9 +23,20 @@ import {
 import { Plus, Search, MoreHorizontal, Pencil, Trash2, Eye, Trophy, Calendar, Users, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
 
+// Helper to extract string from multilingual JSON field
+function getLocalizedString(value: unknown, locale = 'ru'): string {
+  if (!value) return ''
+  if (typeof value === 'string') return value
+  if (typeof value === 'object' && value !== null) {
+    const obj = value as Record<string, string>
+    return obj[locale] || obj['ru'] || obj['en'] || Object.values(obj)[0] || ''
+  }
+  return String(value)
+}
+
 interface Competition {
   id: number
-  title: string
+  title: unknown
   photo: string | null
   startDate: string
   endDate: string
@@ -69,7 +73,6 @@ export default function AdminCompetitionsPage() {
   const [competitions, setCompetitions] = useState<Competition[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
 
   useEffect(() => {
     fetchCompetitions()
@@ -112,37 +115,6 @@ export default function AdminCompetitionsPage() {
     }
   }
 
-  async function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault()
-    const formData = new FormData(e.currentTarget)
-
-    try {
-      const res = await fetch('/api/v1/competitions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.get('title'),
-          startDate: formData.get('startDate'),
-          endDate: formData.get('endDate'),
-          level: formData.get('level') || 'NATIONAL',
-          type: formData.get('type') || 'MIXED',
-        }),
-      })
-
-      const data = await res.json()
-
-      if (data.success) {
-        toast.success('Соревнование создано')
-        setIsCreateOpen(false)
-        fetchCompetitions()
-      } else {
-        toast.error(data.error || 'Ошибка создания')
-      }
-    } catch (error) {
-      toast.error('Ошибка создания соревнования')
-    }
-  }
-
   const formatDate = (dateStr: string) => {
     return new Date(dateStr).toLocaleDateString('ru-RU', {
       day: 'numeric',
@@ -158,52 +130,12 @@ export default function AdminCompetitionsPage() {
           <h1 className="text-3xl font-bold">Соревнования</h1>
           <p className="text-muted-foreground">Управление соревнованиями федерации</p>
         </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Создать соревнование
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Новое соревнование</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="text-sm font-medium">Название *</label>
-                <Input name="title" required placeholder="Чемпионат..." />
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-sm font-medium">Дата начала *</label>
-                  <Input name="startDate" type="date" required />
-                </div>
-                <div>
-                  <label className="text-sm font-medium">Дата окончания *</label>
-                  <Input name="endDate" type="date" required />
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Уровень</label>
-                <select name="level" className="w-full border rounded-md p-2">
-                  {Object.entries(levelLabels).map(([key, label]) => (
-                    <option key={key} value={key}>{label}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="text-sm font-medium">Тип</label>
-                <select name="type" className="w-full border rounded-md p-2">
-                  <option value="MIXED">Смешанный</option>
-                  <option value="PERSONAL">Личный</option>
-                  <option value="TEAM">Командный</option>
-                </select>
-              </div>
-              <Button type="submit" className="w-full">Создать</Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+        <Button asChild>
+          <Link href="/admin/competitions/new">
+            <Plus className="mr-2 h-4 w-4" />
+            Создать соревнование
+          </Link>
+        </Button>
       </div>
 
       <Card>
@@ -254,7 +186,7 @@ export default function AdminCompetitionsPage() {
                           )}
                         </div>
                         <div>
-                          <div className="font-medium">{comp.title}</div>
+                          <div className="font-medium">{getLocalizedString(comp.title)}</div>
                           <div className="text-sm text-muted-foreground">
                             {comp._count.categories} категорий
                           </div>
@@ -303,7 +235,7 @@ export default function AdminCompetitionsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
-                            <Link href={`/competitions/${comp.id}`}>
+                            <Link href={`/admin/competitions/${comp.id}`}>
                               <Eye className="h-4 w-4 mr-2" />
                               Просмотр
                             </Link>
