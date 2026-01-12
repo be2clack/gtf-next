@@ -49,7 +49,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           select: { id: true, code: true, name: true, minWeight: true, maxWeight: true }
         },
         beltCategory: {
-          select: { id: true, code: true, name: true, minLevel: true, maxLevel: true }
+          select: { id: true, name: true, beltMin: true, beltMax: true }
         },
         bracket: {
           select: { id: true, bracketType: true, bracketSize: true, status: true, generatedAt: true }

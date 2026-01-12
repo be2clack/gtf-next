@@ -17,6 +17,9 @@ export async function GET(request: NextRequest, context: RouteContext) {
     const category = await prisma.beltCategory.findUnique({
       where: { id: parseInt(id) },
       include: {
+        ageCategory: {
+          select: { id: true, code: true, nameRu: true, nameEn: true },
+        },
         discipline: {
           select: { id: true, code: true, nameRu: true, name: true },
         },
@@ -45,7 +48,7 @@ export async function PUT(request: NextRequest, context: RouteContext) {
 
   try {
     const body = await request.json()
-    const { code, name, minLevel, maxLevel, disciplineId, isActive } = body
+    const { ageCategoryId, disciplineId, beltMin, beltMax, name, sortOrder, isActive } = body
 
     // Check if category exists
     const existing = await prisma.beltCategory.findUnique({
@@ -56,24 +59,15 @@ export async function PUT(request: NextRequest, context: RouteContext) {
       return NextResponse.json({ error: 'Категория не найдена' }, { status: 404 })
     }
 
-    // Check if code is unique (if changed)
-    if (code && code !== existing.code) {
-      const codeExists = await prisma.beltCategory.findFirst({
-        where: { code, id: { not: parseInt(id) } },
-      })
-      if (codeExists) {
-        return NextResponse.json({ error: 'Категория с таким кодом уже существует' }, { status: 400 })
-      }
-    }
-
     const category = await prisma.beltCategory.update({
       where: { id: parseInt(id) },
       data: {
-        ...(code !== undefined && { code }),
+        ...(ageCategoryId !== undefined && { ageCategoryId: parseInt(ageCategoryId) }),
+        ...(disciplineId !== undefined && { disciplineId: parseInt(disciplineId) }),
+        ...(beltMin !== undefined && { beltMin: parseInt(beltMin) }),
+        ...(beltMax !== undefined && { beltMax: parseInt(beltMax) }),
         ...(name !== undefined && { name }),
-        ...(minLevel !== undefined && { minLevel: parseInt(minLevel) }),
-        ...(maxLevel !== undefined && { maxLevel: parseInt(maxLevel) }),
-        ...(disciplineId !== undefined && { disciplineId: disciplineId ? parseInt(disciplineId) : null }),
+        ...(sortOrder !== undefined && { sortOrder: parseInt(sortOrder) }),
         ...(isActive !== undefined && { isActive }),
       },
     })

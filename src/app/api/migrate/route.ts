@@ -909,12 +909,12 @@ async function migrateBeltCategories(batchSize: number, offset: number): Promise
   const total = await countMySQL('belt_categories')
   const rows = await queryMySQL<{
     id: number
-    code: string
+    age_category_id: number
+    discipline_id: number
+    belt_min: number
+    belt_max: number
     name: string
-    name_ru: string
-    name_en: string
-    min_level: number
-    max_level: number
+    sort_order: number
     is_active: number
     created_at: string
     updated_at: string
@@ -923,23 +923,27 @@ async function migrateBeltCategories(batchSize: number, offset: number): Promise
   let migrated = 0
   for (const row of rows) {
     try {
-      const code = row.code || `belt_${row.id}`
-      const name = row.name || row.name_ru || row.name_en || ''
+      const name = row.name || ''
 
       await prisma.beltCategory.upsert({
         where: { id: row.id },
         create: {
           id: row.id,
-          code,
+          ageCategoryId: row.age_category_id,
+          disciplineId: row.discipline_id,
+          beltMin: row.belt_min || 0,
+          beltMax: row.belt_max || 0,
           name,
-          minLevel: row.min_level || 0,
-          maxLevel: row.max_level || 99,
+          sortOrder: row.sort_order || 0,
           isActive: row.is_active === 1,
           createdAt: toDate(row.created_at) || new Date(),
           updatedAt: toDate(row.updated_at) || new Date(),
         },
         update: {
           name,
+          beltMin: row.belt_min || 0,
+          beltMax: row.belt_max || 0,
+          sortOrder: row.sort_order || 0,
         }
       })
       migrated++

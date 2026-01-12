@@ -1014,6 +1014,7 @@ model AgeCategory {
 
   // Relations
   competitionCategories CompetitionCategory[]
+  beltCategories        BeltCategory[]
 
   @@map("age_categories")
 }
@@ -1039,21 +1040,24 @@ model WeightCategory {
 }
 
 model BeltCategory {
-  id           Int      @id @default(autoincrement())
-  disciplineId Int?     @map("discipline_id")
-  code         String   @db.VarChar(50)
-  name         String   @db.VarChar(100)
-  minLevel     Int      @map("min_level")
-  maxLevel     Int      @map("max_level")
-  isActive     Boolean  @default(true) @map("is_active")
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id            Int      @id @default(autoincrement())
+  ageCategoryId Int      @map("age_category_id")
+  disciplineId  Int      @map("discipline_id")
+  beltMin       Int      @map("belt_min") // Positive = gup (10=10гып), Negative = dan (-1=1дан)
+  beltMax       Int      @map("belt_max")
+  name          String   @db.VarChar(100)
+  sortOrder     Int      @default(0) @map("sort_order")
+  isActive      Boolean  @default(true) @map("is_active")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
-  discipline            Discipline?           @relation(fields: [disciplineId], references: [id])
+  ageCategory           AgeCategory           @relation(fields: [ageCategoryId], references: [id], onDelete: Cascade)
+  discipline            Discipline            @relation(fields: [disciplineId], references: [id], onDelete: Cascade)
   competitionCategories CompetitionCategory[]
 
-  @@index([disciplineId])
+  @@index([ageCategoryId, disciplineId])
+  @@index([isActive])
   @@map("belt_categories")
 }
 

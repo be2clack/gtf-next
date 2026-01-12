@@ -10,10 +10,16 @@ export async function GET() {
   }
 
   const categories = await prisma.beltCategory.findMany({
-    orderBy: { minLevel: 'asc' },
+    orderBy: [
+      { ageCategoryId: 'asc' },
+      { beltMin: 'desc' },
+    ],
     include: {
-      discipline: {
+      ageCategory: {
         select: { id: true, code: true, nameRu: true, nameEn: true },
+      },
+      discipline: {
+        select: { id: true, code: true, nameRu: true, name: true },
       },
     },
   })
@@ -30,34 +36,23 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json()
-    const { code, name, minLevel, maxLevel, disciplineId, isActive } = body
+    const { ageCategoryId, disciplineId, beltMin, beltMax, name, sortOrder, isActive } = body
 
-    if (!code || !name) {
+    if (!ageCategoryId || !disciplineId || !name) {
       return NextResponse.json(
-        { error: 'Код и название обязательны' },
-        { status: 400 }
-      )
-    }
-
-    // Check if code already exists
-    const existing = await prisma.beltCategory.findFirst({
-      where: { code },
-    })
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Категория с таким кодом уже существует' },
+        { error: 'Возрастная категория, дисциплина и название обязательны' },
         { status: 400 }
       )
     }
 
     const category = await prisma.beltCategory.create({
       data: {
-        code,
+        ageCategoryId: parseInt(ageCategoryId),
+        disciplineId: parseInt(disciplineId),
+        beltMin: parseInt(beltMin) || 0,
+        beltMax: parseInt(beltMax) || 0,
         name,
-        minLevel: minLevel ? parseInt(minLevel) : 0,
-        maxLevel: maxLevel ? parseInt(maxLevel) : 0,
-        disciplineId: disciplineId ? parseInt(disciplineId) : null,
+        sortOrder: sortOrder ? parseInt(sortOrder) : 0,
         isActive: isActive !== false,
       },
     })

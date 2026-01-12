@@ -15,8 +15,14 @@ import {
 
 async function getBeltCategories() {
   return prisma.beltCategory.findMany({
-    orderBy: { minLevel: 'asc' },
+    orderBy: [
+      { ageCategoryId: 'asc' },
+      { beltMin: 'desc' },
+    ],
     include: {
+      ageCategory: {
+        select: { id: true, code: true, nameRu: true, nameEn: true },
+      },
       discipline: {
         select: { id: true, code: true, nameRu: true, name: true },
       },
@@ -29,45 +35,43 @@ async function getBeltCategories() {
   })
 }
 
-// Format belt level to human-readable string
-// In ITF TKD: 10 gup (white) to 1 gup (red-black), then 1 dan to 9 dan
-// Storage: positive = gup (10 is lowest), negative = dan (e.g., -1 = 1 dan)
-function formatBeltLevel(level: number): string {
-  if (level > 0) {
-    return `${level} гып`
-  } else if (level <= 0) {
-    return `${Math.abs(level) || 1} дан`
-  }
-  return String(level)
+// Format belt level to human-readable string (Laravel logic)
+// Positive = гыпы (10 = 10 гып, 1 = 1 гып)
+// Negative = даны (-1 = 1 дан, -9 = 9 дан)
+function getBeltName(belt: number): string {
+  if (belt > 0) return `${belt} гып`
+  if (belt < 0) return `${Math.abs(belt)} дан`
+  return 'Не указан'
 }
 
-function formatBeltRange(minLevel: number, maxLevel: number): string {
-  const minStr = formatBeltLevel(minLevel)
-  const maxStr = formatBeltLevel(maxLevel)
-  if (minStr === maxStr) {
-    return minStr
+function formatBeltRange(beltMin: number, beltMax: number): string {
+  const minName = getBeltName(beltMin)
+  const maxName = getBeltName(beltMax)
+  if (minName === maxName) {
+    return minName
   }
-  return `${minStr} — ${maxStr}`
+  // Laravel shows: belt_max - belt_min (e.g., "3 гып - 4 гып")
+  return `${maxName} - ${minName}`
 }
 
-// Get color class based on belt level range
-function getBeltColorClass(minLevel: number, maxLevel: number): string {
-  // Check if range includes dan (any negative or zero)
-  if (maxLevel <= 0) {
+// Get color class based on belt level
+function getBeltColorClass(beltMin: number): string {
+  // Check if it's a dan (negative)
+  if (beltMin <= 0) {
     return 'bg-gray-900 text-white' // Black belt
   }
 
   // Check by gup level (higher number = lower rank)
-  if (minLevel >= 8) {
-    return 'bg-gray-100 text-gray-800 border border-gray-300' // White belt area (10-8 gup)
-  } else if (minLevel >= 6) {
+  if (beltMin >= 8) {
+    return 'bg-white text-gray-800 border border-gray-300' // White belt area (10-8 gup)
+  } else if (beltMin >= 6) {
     return 'bg-yellow-400 text-yellow-900' // Yellow belt area (7-6 gup)
-  } else if (minLevel >= 4) {
-    return 'bg-green-500 text-white' // Green belt area (5-4 gup)
-  } else if (minLevel >= 2) {
-    return 'bg-blue-500 text-white' // Blue belt area (3-2 gup)
+  } else if (beltMin >= 4) {
+    return 'bg-blue-500 text-white' // Blue belt area (5-4 gup)
+  } else if (beltMin >= 2) {
+    return 'bg-red-500 text-white' // Red belt area (3-2 gup)
   } else {
-    return 'bg-red-500 text-white' // Red belt area (1 gup)
+    return 'bg-gray-700 text-white' // Red-black (1 gup)
   }
 }
 
@@ -80,7 +84,7 @@ export default async function BeltCategoriesPage() {
         <div>
           <h1 className="text-3xl font-bold">Категории поясов</h1>
           <p className="text-muted-foreground">
-            Управление категориями поясов (гупы и даны)
+            Управление категориями по поясам (гыпы и даны)
           </p>
         </div>
         <Button asChild>
@@ -93,41 +97,37 @@ export default async function BeltCategoriesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Список категорий поясов</CardTitle>
+          <CardTitle>Список категорий по поясам</CardTitle>
           <CardDescription>
-            Категории определяют уровень подготовки спортсменов
+            Категории определяют уровень подготовки спортсменов для соревнований
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead className="w-12">#</TableHead>
-                <TableHead>Код</TableHead>
                 <TableHead>Название</TableHead>
-                <TableHead>Уровень</TableHead>
+                <TableHead>Возрастная категория</TableHead>
                 <TableHead>Дисциплина</TableHead>
-                <TableHead>Использование</TableHead>
+                <TableHead>Пояса</TableHead>
                 <TableHead>Статус</TableHead>
                 <TableHead className="text-right">Действия</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {categories.map((category, index) => (
+              {categories.map((category) => (
                 <TableRow key={category.id}>
-                  <TableCell className="text-muted-foreground">
-                    {index + 1}
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {category.code}
-                  </TableCell>
                   <TableCell className="font-medium">
                     {category.name}
                   </TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getBeltColorClass(category.minLevel, category.maxLevel)}`}>
-                      {formatBeltRange(category.minLevel, category.maxLevel)}
-                    </span>
+                    {category.ageCategory ? (
+                      <span className="text-sm">
+                        {category.ageCategory.nameRu || category.ageCategory.nameEn || category.ageCategory.code}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground">—</span>
+                    )}
                   </TableCell>
                   <TableCell>
                     {category.discipline ? (
@@ -135,12 +135,12 @@ export default async function BeltCategoriesPage() {
                         {category.discipline.nameRu || category.discipline.name}
                       </span>
                     ) : (
-                      <span className="text-muted-foreground">Все</span>
+                      <span className="text-muted-foreground">—</span>
                     )}
                   </TableCell>
                   <TableCell>
-                    <span className="text-muted-foreground text-sm">
-                      {category._count.competitionCategories} категорий
+                    <span className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${getBeltColorClass(category.beltMin)}`}>
+                      {formatBeltRange(category.beltMin, category.beltMax)}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -162,7 +162,7 @@ export default async function BeltCategoriesPage() {
 
           {categories.length === 0 && (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">Нет категорий поясов</p>
+              <p className="text-muted-foreground">Нет категорий по поясам</p>
             </div>
           )}
         </CardContent>

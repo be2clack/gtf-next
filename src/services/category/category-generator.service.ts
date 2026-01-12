@@ -622,33 +622,23 @@ export class CompetitionCategoryGeneratorService {
 
   /**
    * Get or create belt category
+   * Note: Belt categories require ageCategoryId and disciplineId
+   * This function returns existing category or null (cannot auto-create without age category)
    */
   private async getOrCreateBeltCategory(
     disciplineId: number,
     rule: BeltRange
   ) {
+    // Belt categories now require age_category_id, so we just find existing
     const existing = await prisma.beltCategory.findFirst({
       where: {
         disciplineId,
-        minLevel: rule.min,
-        maxLevel: rule.max,
+        beltMin: rule.min,
+        beltMax: rule.max,
       },
     })
 
-    if (existing) {
-      return existing
-    }
-
-    return prisma.beltCategory.create({
-      data: {
-        disciplineId,
-        code: `B${rule.min}-${rule.max}`,
-        name: rule.name,
-        minLevel: rule.min,
-        maxLevel: rule.max,
-        isActive: true,
-      },
-    })
+    return existing
   }
 
   /**
