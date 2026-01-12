@@ -38,13 +38,15 @@ async function getBeltCategories() {
 // Format belt level to human-readable string (Laravel logic)
 // Positive = гыпы (10 = 10 гып, 1 = 1 гып)
 // Negative = даны (-1 = 1 дан, -9 = 9 дан)
-function getBeltName(belt: number): string {
+function getBeltName(belt: number | null): string {
+  if (belt === null) return 'Не указан'
   if (belt > 0) return `${belt} гып`
   if (belt < 0) return `${Math.abs(belt)} дан`
   return 'Не указан'
 }
 
-function formatBeltRange(beltMin: number, beltMax: number): string {
+function formatBeltRange(beltMin: number | null, beltMax: number | null): string {
+  if (beltMin === null || beltMax === null) return 'Не указан'
   const minName = getBeltName(beltMin)
   const maxName = getBeltName(beltMax)
   if (minName === maxName) {
@@ -55,7 +57,8 @@ function formatBeltRange(beltMin: number, beltMax: number): string {
 }
 
 // Get color class based on belt level
-function getBeltColorClass(beltMin: number): string {
+function getBeltColorClass(beltMin: number | null): string {
+  if (beltMin === null) return 'bg-gray-200 text-gray-600'
   // Check if it's a dan (negative)
   if (beltMin <= 0) {
     return 'bg-gray-900 text-white' // Black belt
